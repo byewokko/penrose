@@ -25,16 +25,16 @@ def draw():
 
     try:
         n1, n2 = [x.get_xy(50) for x in next(walk)]
+        line(*n1, *n2)
     except StopIteration:
         pass
-    clear()
-    line(*n1, *n2)
+    # clear()
     # img = get()
-    circle(*n2, 5)
+    # circle(*n2, 5)
     pop_matrix()
 
 
 if __name__ == "__main__":
     graph = tiling.PenroseRhombNet()
-    walk = tiling.random_walk(graph)
+    walk = tiling.random_tiling(graph)
     run()
