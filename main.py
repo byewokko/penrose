@@ -1,8 +1,10 @@
 from p5 import *
-from tiling import generate
+import tiling
 
-vertices = []
-edges = []
+steps = 100
+edge_length = 50
+
+walk = None
 
 
 def setup():
@@ -12,16 +14,27 @@ def setup():
 
 
 def draw():
-    clear()
+    # global img
+    if frame_count % 5:
+        return
+
+    # if img:
+    #     image(img, 0, 0)
     push_matrix()
     translate(width / 2, height / 2)
-    for a, b in edges[:(frame_count // 2)]:
-        # print(*vertices[a], *vertices[b])
-        line(*vertices[a], *vertices[b])
-    circle(*vertices[(frame_count // 2)], 5)
+
+    try:
+        n1, n2 = [x.get_xy(50) for x in next(walk)]
+    except StopIteration:
+        pass
+    clear()
+    line(*n1, *n2)
+    # img = get()
+    circle(*n2, 5)
     pop_matrix()
 
 
 if __name__ == "__main__":
-    vertices, edges = generate(100, edge_length=50)
+    graph = tiling.PenroseRhombNet()
+    walk = tiling.random_walk(graph)
     run()
