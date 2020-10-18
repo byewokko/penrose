@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import heapq
 import random
 import sys
 from typing import Optional, Union, Tuple, List, Sequence, Deque
@@ -84,6 +85,7 @@ class PenroseNode4D(Node4D):
         else:
             self.flag = flag
         self.free_slots = [True for _ in range(10)]  # slots IN BETWEEN edges
+        self.free_slots_saved = self.free_slots.copy()
 
     def step(self, direction):
         direction = direction % 10
@@ -97,12 +99,18 @@ class PenroseNode4D(Node4D):
             self._p[3]
         )
 
-    def take_slot(self, slot: Union[int, Sequence[int]]):
+    def book_slots(self, slot: Union[int, Sequence[int]]):
         if isinstance(slot, int):
             self.free_slots[slot % 10] = False
         else:
             for i in slot:
                 self.free_slots[i % 10] = False
+
+    def unbook_slots(self):
+        self.free_slots = self.free_slots_saved.copy()
+
+    def save_slots(self):
+        self.free_slots_saved = self.free_slots.copy()
 
     def is_free(self, slot: Union[int, Sequence[int]]):
         if isinstance(slot, int):
@@ -113,6 +121,27 @@ class PenroseNode4D(Node4D):
                     return False
             return True
 
+    def get_max_angle(self, direction: int, orientation: bool = True):
+        """
+        Get max size of angle with base in <direction>, oriented CCW (True) or CW (False)
+        """
+        angle = 0
+        if orientation:
+            # Counter-clockwise
+            while angle < 10:
+                if not self.free_slots[(direction + angle) % 10]:
+                    break
+                else:
+                    angle += 1
+        else:
+            # Clockwise
+            while angle < 10:
+                if not self.free_slots[(direction - angle - 1) % 10]:
+                    break
+                else:
+                    angle += 1
+        return angle
+
     def take_if_free(self, slot: Union[int, Sequence[int]]):
         # TODO: inefficient?
         if not self.is_free(slot):
@@ -120,7 +149,7 @@ class PenroseNode4D(Node4D):
             raise ValueError("node is not free")
             # self.take_slot(slot)
         else:
-            self.take_slot(slot)
+            self.book_slots(slot)
 
     def get_xy(self, edge_length: float):
         x = edge_length * (self._p[0] + np.sqrt(5) * self._p[1]) / 4
@@ -128,6 +157,10 @@ class PenroseNode4D(Node4D):
         if INVERT_Y:
             y = -y
         return x, y
+
+    def __lt__(self, other: PenroseNode4D):
+        # TODO: need to find better solution for frontier sorting, this is ugly
+        return sum(self.free_slots) < sum(other.free_slots)
     
     
 class PenroseRhombNet:
@@ -135,18 +168,26 @@ class PenroseRhombNet:
         self.nodes: List[PenroseNode4D] = []
         self.edges: List[Tuple[PenroseNode4D, PenroseNode4D]] = []
         self.rhombs: List[Tuple[PenroseNode4D, PenroseNode4D, PenroseNode4D, PenroseNode4D]] = []
-        self.frontier: Deque[int] = deque()
+        self.frontier: List[Tuple] = []
         self.debug = []
         self.stopflag = False
 
-    def add_node(self, node: PenroseNode4D, add_to_frontier: bool = True):
+    def add_node(self, node: PenroseNode4D, add_to_frontier: bool = False) -> (int, PenroseNode4D):
         index = self.find_node(node)
         if index > -1:
             return index, self.nodes[index]
         self.nodes.append(node)
         index = len(self.nodes) - 1
-        self.frontier.append(index)
+        if add_to_frontier:
+            self.add_to_frontier(index)
         return index, node
+
+    def add_to_frontier(self, index: int):
+        heapq.heappush(self.frontier, (index // 6, self.get_node(index)))
+
+    def pop_from_frontier(self):
+        # heapq.heapify(self.frontier)
+        return heapq.heappop(self.frontier)[1]
 
     def find_node(self, node: PenroseNode4D) -> int:
         if node not in self.nodes:
@@ -166,86 +207,103 @@ class PenroseRhombNet:
         self.edges.append((a, b))
 
     def add_rhomb(self, index: int, direction: int, angle: int):
+        """
+        :param index: Node index
+        :param direction: Direction to expand towards, must be in [0, 10)
+        :param angle: Angle to expand with, must be in {1, 2, 3, 4}
+        :return: True if successful, False if fail
+        """
         assert angle in (1, 2, 3, 4)
         start = direction % 10
         iA = index
         A = self.nodes[iA]
-        try:
-            A.take_if_free(range(start, start + angle))
-        except ValueError:
-            self.stopflag = True
-            A.take_slot(range(start, start + angle))
+        if not A.is_free(range(start, start + angle)):
+            print("A", A.free_slots, file=sys.stdout)
+            return False
 
         B = A.step(start)
-        iB, B = self.add_node(B)
-        try:
-            B.take_if_free(range(start + angle, start + 5))
-        except ValueError:
-            self.stopflag = True
-            B.take_slot(range(start + angle, start + 5))
+        iB, B = self.add_node(B, True)
+        if not B.is_free(range(start + angle, start + 5)):
+            print("B", B.free_slots, file=sys.stdout)
+            return False
 
         C = B.step(start + angle)
-        iC, C = self.add_node(C)
-        try:
-            C.take_if_free(range(start + 5, start + 5 + angle))
-        except ValueError:
-            self.stopflag = True
-            C.take_slot(range(start + 5, start + 5 + angle))
+        iC, C = self.add_node(C, True)
+        if not C.is_free(range(start + 5, start + 5 + angle)):
+            print("C", C.free_slots, file=sys.stdout)
+            return False
 
         D = C.step(start + 5)
-        iD, D = self.add_node(D)
-        try:
-            D.take_if_free(range(start + 5 + angle, start + 10))
-        except ValueError:
-            self.stopflag = True
-            D.take_slot(range(start + 5 + angle, start + 10))
+        iD, D = self.add_node(D, True)
+        if not D.is_free(range(start + 5 + angle, start + 10)):
+            print("D", D.free_slots, file=sys.stdout)
+            return False
 
+        A.book_slots(range(start, start + angle))
+        B.book_slots(range(start + angle, start + 5))
+        C.book_slots(range(start + 5, start + 5 + angle))
+        D.book_slots(range(start + 5 + angle, start + 10))
         self.add_edge(iA, iB)
         self.add_edge(iB, iC)
         self.add_edge(iC, iD)
         self.add_edge(iD, iA)
+        return True
 
-    def expand_node(self, index: Optional[int] = None):
-        if index is None:
-            index = self.frontier.popleft()
-        A = self.nodes[index]
-        print(f"Expanding node {index}: {A}")
-        free_slots = A.free_slots
-        print(f"free_slots {free_slots}")
+    def expand_node(self, node: Optional[PenroseNode4D] = None):
+        if node is None:
+            node = self.pop_from_frontier()
+        print(f"Expanding node {node}")
+        free_slots = node.free_slots
+        # print(f"free_slots {free_slots}")
         while True in free_slots:
             if False in free_slots:
-                # rotate the list so that free_slots[-1] == False and free_slots[0] == True
-                start = free_slots.index(False)
-                while free_slots[start] is False:
-                    start = (start + 1) % 10
-                end = (start + 1) % 10
-                while free_slots[end % 10] is True:
-                    end = (end + 1) % 10
-                stretch = (end - start) % 10
+                # "rotate" the list so that free_slots[-1] == False and free_slots[0] == True
+                alpha = free_slots.index(False)
+                while free_slots[alpha] is False:
+                    alpha = (alpha + 1) % 10
+                # beta = (alpha + 1) % 10
+                # while free_slots[beta] is True:
+                #     beta = (beta + 1) % 10
+                # stretch = (beta - alpha) % 10
+                stretch = node.get_max_angle(alpha, True)
             else:
-                start = random.randint(0, 9)
-                end = start + 10
+                alpha = random.randint(0, 9)
+                # beta = alpha + 10
                 stretch = 10
-            print(f"Start direction: {start}, end: {end}")
+            beta = alpha + stretch
+            print(f"Start direction: {alpha}, end: {beta}")
+
+            # check the edge angles
+            alpha_node = node.step(alpha)
+            i_alpha_node, alpha_node = self.add_node(alpha_node)
+            beta_node = node.step(beta)
+            i_beta_node, beta_node = self.add_node(beta_node)
+            min_alpha_angle = 5 - alpha_node.get_max_angle(direction=alpha + 5, orientation=False)
+            min_beta_angle = 5 - beta_node.get_max_angle(direction=beta + 5, orientation=True)
+            print(f"a {min_alpha_angle}, b {min_beta_angle}")
 
             # split the stretch
             angles = []
-            while stretch > 0:
-                print(f"stretch = {stretch}")
-                angle = random.randint(1, min(4, stretch))
-                stretch -= angle
-                angles.append(angle)
-            print(f"Angles: {angles}")
+            start = alpha
+            while not angles or angles[0] < min_alpha_angle or angles[-1] < min_beta_angle:
+                angles = []
+                while sum(angles) < stretch:
+                    # print(f"stretch = {remaining_stretch}")
+                    # angle = sum([random.randint(1, min(4, stretch - sum(angles))) for _ in range(5)])//5
+                    angle = random.randint(1, min(4, stretch - sum(angles)))
+                    angles.append(angle)
+                print(f"Angles: {angles}")
 
             # build the rhombs
-            iA = index
+            iA, A = self.add_node(node)
             for angle in angles:
-                print(f"angle: {angle}")
-                self.add_rhomb(iA, start, angle)
-                if self.stopflag:
-                    return
+                # print(f"angle: {angle}")
+                if not self.add_rhomb(iA, start, angle):
+                    break
                 start += angle
-        print(f"Expanding node {index} completed")
+        # TODO: save node (and edge) status before expanding, keep new changes separate, submit them when sure
+
+        print(f"Expanding node {node} completed")
 
 
 
@@ -269,18 +327,18 @@ class PenroseRhombNet:
 def random_walk(graph: PenroseRhombNet):
     d = random.randint(0, 9)
     d_last = None
-    last, last_node = graph.add_node(PenroseNode4D())
+    _, last_node = graph.add_node(PenroseNode4D())
     while True:
         while d_last in (d, (d + 5) % 10):
             d = random.randint(0, 10)
-        this, this_node = graph.add_node(graph.nodes[last].step(d))
-        yield graph.get_node(last), graph.get_node(this)
-        last = this
+        _, this_node = graph.add_node(last_node.step(d))
+        yield last_node, this_node
+        last_node = this_node
         d_last = d
 
 
 def random_tiling(graph: PenroseRhombNet):
-    last, last_node = graph.add_node(PenroseNode4D())
+    last, last_node = graph.add_node(PenroseNode4D(), True)
     while True:
         graph.expand_node()
         yield from graph.edges
