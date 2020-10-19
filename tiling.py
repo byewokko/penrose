@@ -78,12 +78,9 @@ class PenroseNode4D(Node4D):
     
     def __init__(self,
                  params: Optional[Sequence[int, int, int, int]] = None,
-                 flag: Union[-1, 0, 1, None] = None):
+                 flag: Union[-1, 0, 1] = 0):
         super().__init__(params)
-        if not flag:
-            self.flag = 0
-        else:
-            self.flag = flag
+        self.flag = flag
         self.free_slots = [True for _ in range(10)]  # slots IN BETWEEN edges
         self.free_slots_saved = self.free_slots.copy()
 
@@ -167,7 +164,7 @@ class RhombNet:
     def __init__(self):
         self.nodes: List[PenroseNode4D] = []
         self.edges: List[Tuple[PenroseNode4D, PenroseNode4D]] = []
-        self.rhombs: List[Tuple[PenroseNode4D, PenroseNode4D, PenroseNode4D, PenroseNode4D]] = []
+        self.rhombs: List[Tuple[PenroseNode4D, PenroseNode4D, PenroseNode4D, PenroseNode4D, bool]] = []
         self.frontier: List[Tuple] = []
         self.debug = []
         self.stopflag = False
@@ -207,7 +204,7 @@ class RhombNet:
             b = self.get_node(b)
         self.edges.append((a, b))
 
-    def add_rhomb(self, index: int, direction: int, angle: int):
+    def construct_rhomb(self, index: int, direction: int, angle: int):
         """
         :param index: Node index
         :param direction: Direction to expand towards, must be in [0, 10)
@@ -248,7 +245,11 @@ class RhombNet:
         self.add_edge(iB, iC)
         self.add_edge(iC, iD)
         self.add_edge(iD, iA)
+        self.add_rhomb(A, B, C, D, angle in (1, 4))
         return True
+
+    def add_rhomb(self, a, b, c, d, rhomb_type):
+        self.rhombs.append((a, b, c, d, rhomb_type))
 
     def expand_node(self, node: Optional[PenroseNode4D] = None):
         if node is None:
@@ -308,7 +309,7 @@ class RhombNet:
             iA, A = self.add_node(node)
             for angle in angles:
                 # print(f"angle: {angle}")
-                if not self.add_rhomb(iA, alpha, angle):
+                if not self.construct_rhomb(iA, alpha, angle):
                     break
                 alpha += angle
         # TODO: save node (and edge) status before expanding, keep new changes separate, submit them when sure
@@ -341,19 +342,20 @@ def random_walk(graph: RhombNet):
         d_last = d
 
 
-def random_tiling(graph: RhombNet):
+def random_tiling(graph: RhombNet, mode: str = "edges"):
     last, last_node = graph.add_node(PenroseNode4D(), True)
     while True:
         graph.expand_node()
-        yield from graph.edges
-        if graph.stopflag:
-            break
-        graph.edges = []
-
-    # for e, m in zip(graph.edges, graph.debug):
-    #     print(m)
-    #     yield e
-    # yield from graph.edges
+        if mode == "edges":
+            yield from graph.edges
+            if graph.stopflag:
+                break
+            graph.edges = []
+        elif mode == "rhombs":
+            yield from graph.rhombs
+            if graph.stopflag:
+                break
+            graph.rhombs = []
 
 
 def test_circle(graph: RhombNet):
