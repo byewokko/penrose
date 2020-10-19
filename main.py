@@ -35,6 +35,6 @@ def draw():
 
 
 if __name__ == "__main__":
-    graph = tiling.PenroseRhombNet()
+    graph = tiling.RhombNet()
     walk = tiling.random_tiling(graph)
     run()

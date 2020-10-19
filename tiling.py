@@ -163,7 +163,7 @@ class PenroseNode4D(Node4D):
         return sum(self.free_slots) < sum(other.free_slots)
     
     
-class PenroseRhombNet:
+class RhombNet:
     def __init__(self):
         self.nodes: List[PenroseNode4D] = []
         self.edges: List[Tuple[PenroseNode4D, PenroseNode4D]] = []
@@ -183,7 +183,8 @@ class PenroseRhombNet:
         return index, node
 
     def add_to_frontier(self, index: int):
-        heapq.heappush(self.frontier, (index // 6, self.get_node(index)))
+        AGE_FACTOR = 6
+        heapq.heappush(self.frontier, (index // AGE_FACTOR, self.get_node(index)))
 
     def pop_from_frontier(self):
         # heapq.heapify(self.frontier)
@@ -261,14 +262,9 @@ class PenroseRhombNet:
                 alpha = free_slots.index(False)
                 while free_slots[alpha] is False:
                     alpha = (alpha + 1) % 10
-                # beta = (alpha + 1) % 10
-                # while free_slots[beta] is True:
-                #     beta = (beta + 1) % 10
-                # stretch = (beta - alpha) % 10
                 stretch = node.get_max_angle(alpha, True)
             else:
                 alpha = random.randint(0, 9)
-                # beta = alpha + 10
                 stretch = 10
             beta = alpha + stretch
             print(f"Start direction: {alpha}, end: {beta}")
@@ -278,38 +274,46 @@ class PenroseRhombNet:
             i_alpha_node, alpha_node = self.add_node(alpha_node)
             beta_node = node.step(beta)
             i_beta_node, beta_node = self.add_node(beta_node)
-            min_alpha_angle = 5 - alpha_node.get_max_angle(direction=alpha + 5, orientation=False)
-            min_beta_angle = 5 - beta_node.get_max_angle(direction=beta + 5, orientation=True)
-            print(f"a {min_alpha_angle}, b {min_beta_angle}")
+            min_alpha_angle = max(5 - alpha_node.get_max_angle(direction=alpha + 5, orientation=False), 1)
+            min_beta_angle = max(5 - beta_node.get_max_angle(direction=beta + 5, orientation=True), 1)
+            # print(f"a {min_alpha_angle}, b {min_beta_angle}")
 
             # split the stretch
-            angles = []
-            start = alpha
-            while not angles or angles[0] < min_alpha_angle or angles[-1] < min_beta_angle:
-                angles = []
-                while sum(angles) < stretch:
+            print(f"a>={min_alpha_angle}, b>={min_beta_angle}, {stretch}")
+            if stretch < min_alpha_angle + min_beta_angle:
+                if stretch > 4:
+                    raise RuntimeError(f"Unexpandable node {node}")
+                else:
+                    angles = [stretch]
+            else:
+                alpha_angle = random.randint(min_alpha_angle, min(4, stretch - min_beta_angle))
+                beta_angle = random.randint(min_beta_angle, min(4, stretch - alpha_angle))
+                angles = [alpha_angle]
+                while sum(angles) < stretch - beta_angle:
+                    # angle = min(4, stretch - sum(angles))
+                    # while angle > 1:
+                    #     if random.random() > 0.618:
+                    #         angle -= 1
+                    #     else:
+                    #         break
                     # print(f"stretch = {remaining_stretch}")
-                    # angle = sum([random.randint(1, min(4, stretch - sum(angles))) for _ in range(5)])//5
+                    # angle = sum([random.randint(1, min(4, stretch - beta_angle - sum(angles))) for _ in range(10)])//10
                     angle = random.randint(1, min(4, stretch - sum(angles)))
                     angles.append(angle)
-                print(f"Angles: {angles}")
+                    print(angles)
+                angles.append(beta_angle)
+            print(f"Angles: {angles}, a>={min_alpha_angle}, b>={min_beta_angle}, {stretch}")
 
             # build the rhombs
             iA, A = self.add_node(node)
             for angle in angles:
                 # print(f"angle: {angle}")
-                if not self.add_rhomb(iA, start, angle):
+                if not self.add_rhomb(iA, alpha, angle):
                     break
-                start += angle
+                alpha += angle
         # TODO: save node (and edge) status before expanding, keep new changes separate, submit them when sure
 
         print(f"Expanding node {node} completed")
-
-
-
-
-
-
 
     def get_node_xy(self, index: int, edge_length: float) -> Tuple[int, int]:
         return self.nodes[index].get_xy(edge_length)
@@ -324,7 +328,7 @@ class PenroseRhombNet:
         self.edges = []
 
 
-def random_walk(graph: PenroseRhombNet):
+def random_walk(graph: RhombNet):
     d = random.randint(0, 9)
     d_last = None
     _, last_node = graph.add_node(PenroseNode4D())
@@ -337,7 +341,7 @@ def random_walk(graph: PenroseRhombNet):
         d_last = d
 
 
-def random_tiling(graph: PenroseRhombNet):
+def random_tiling(graph: RhombNet):
     last, last_node = graph.add_node(PenroseNode4D(), True)
     while True:
         graph.expand_node()
@@ -352,7 +356,7 @@ def random_tiling(graph: PenroseRhombNet):
     # yield from graph.edges
 
 
-def test_circle(graph: PenroseRhombNet):
+def test_circle(graph: RhombNet):
     last, last_node = graph.add_node(PenroseNode4D())
     for d in range(10):
         this_node = last_node.step(d)
@@ -361,7 +365,7 @@ def test_circle(graph: PenroseRhombNet):
         last_node = this_node
 
 
-def test_star(graph: PenroseRhombNet):
+def test_star(graph: RhombNet):
     last, last_node = graph.add_node(PenroseNode4D())
     for d in range(10):
         this_node = last_node.step(d)
