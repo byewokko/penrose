@@ -148,6 +148,20 @@ class PenroseNode4D(Node4D):
         else:
             self.book_slots(slot)
 
+    def get_free_stretch(self):
+        if True not in self.free_slots:
+            return 0, 0
+        if False in self.free_slots:
+            # "rotate" the list so that free_slots[-1] == False and free_slots[0] == True
+            start = self.free_slots.index(False)
+            while self.free_slots[start] is False:
+                start = (start + 1) % 10
+            stretch = self.get_max_angle(start, True)
+        else:
+            start = random.randint(0, 9)
+            stretch = 10
+        return start, stretch
+
     def get_xy(self, edge_length: float):
         x = edge_length * (self._p[0] + np.sqrt(5) * self._p[1]) / 4
         y = edge_length * (np.sin(np.pi / 5) * self._p[2] + np.sin(np.pi * 2 / 5) * self._p[3])
@@ -258,15 +272,7 @@ class RhombNet:
         free_slots = node.free_slots
         # print(f"free_slots {free_slots}")
         while True in free_slots:
-            if False in free_slots:
-                # "rotate" the list so that free_slots[-1] == False and free_slots[0] == True
-                alpha = free_slots.index(False)
-                while free_slots[alpha] is False:
-                    alpha = (alpha + 1) % 10
-                stretch = node.get_max_angle(alpha, True)
-            else:
-                alpha = random.randint(0, 9)
-                stretch = 10
+            alpha, stretch = node.get_free_stretch()
             beta = alpha + stretch
             print(f"Start direction: {alpha}, end: {beta}")
 
@@ -298,8 +304,8 @@ class RhombNet:
                     #     else:
                     #         break
                     # print(f"stretch = {remaining_stretch}")
-                    # angle = sum([random.randint(1, min(4, stretch - beta_angle - sum(angles))) for _ in range(10)])//10
-                    angle = random.randint(1, min(4, stretch - sum(angles)))
+                    angle = sum([random.randint(1, min(4, stretch - beta_angle - sum(angles))) for _ in range(10)])//10
+                    # angle = random.randint(1, min(4, stretch - sum(angles)))
                     angles.append(angle)
                     print(angles)
                 angles.append(beta_angle)
@@ -344,6 +350,22 @@ def random_walk(graph: RhombNet):
 
 def random_tiling(graph: RhombNet, mode: str = "edges"):
     last, last_node = graph.add_node(PenroseNode4D(), True)
+    while True:
+        graph.expand_node()
+        if mode == "edges":
+            yield from graph.edges
+            if graph.stopflag:
+                break
+            graph.edges = []
+        elif mode == "rhombs":
+            yield from graph.rhombs
+            if graph.stopflag:
+                break
+            graph.rhombs = []
+
+
+def random_penrose_tiling(graph: RhombNet, mode: str = "edges"):
+    graph.add_node(PenroseNode4D(flag=1), True)
     while True:
         graph.expand_node()
         if mode == "edges":
