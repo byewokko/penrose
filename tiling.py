@@ -23,6 +23,10 @@ step = np.asarray([
 ])
 
 
+def round_up(val: int, base: int = 2):
+    return (val + base - 1) // base * base
+
+
 class Node4D:
     def __init__(self, params: Optional[Sequence[int]] = None):
         if not params:
@@ -274,7 +278,7 @@ class RhombNet:
         while True in free_slots:
             alpha, stretch = node.get_free_stretch()
             beta = alpha + stretch
-            print(f"Start direction: {alpha}, end: {beta}")
+            # print(f"Start direction: {alpha}, end: {beta}")
 
             # check the edge angles
             alpha_node = node.step(alpha)
@@ -286,7 +290,7 @@ class RhombNet:
             # print(f"a {min_alpha_angle}, b {min_beta_angle}")
 
             # split the stretch
-            print(f"a>={min_alpha_angle}, b>={min_beta_angle}, {stretch}")
+            # print(f"a>={min_alpha_angle}, b>={min_beta_angle}, {stretch}")
             if stretch < min_alpha_angle + min_beta_angle:
                 if stretch > 4:
                     raise RuntimeError(f"Unexpandable node {node}")
@@ -304,12 +308,13 @@ class RhombNet:
                     #     else:
                     #         break
                     # print(f"stretch = {remaining_stretch}")
-                    angle = sum([random.randint(1, min(4, stretch - beta_angle - sum(angles))) for _ in range(10)])//10
+                    angle = sum(
+                        [random.randint(1, min(4, stretch - beta_angle - sum(angles))) for _ in range(10)]) // 10
                     # angle = random.randint(1, min(4, stretch - sum(angles)))
                     angles.append(angle)
                     print(angles)
                 angles.append(beta_angle)
-            print(f"Angles: {angles}, a>={min_alpha_angle}, b>={min_beta_angle}, {stretch}")
+            # print(f"Angles: {angles}, a>={min_alpha_angle}, b>={min_beta_angle}, {stretch}")
 
             # build the rhombs
             iA, A = self.add_node(node)
@@ -319,8 +324,71 @@ class RhombNet:
                     break
                 alpha += angle
         # TODO: save node (and edge) status before expanding, keep new changes separate, submit them when sure
+        # print(f"Expanding node {node} completed")
 
-        print(f"Expanding node {node} completed")
+    def expand_penrose_node(self, node: Optional[PenroseNode4D] = None):
+        if node is None:
+            node = self.pop_from_frontier()
+        print(f"Expanding node {node}, flag {node.flag}")
+        free_slots = node.free_slots
+        # print(f"free_slots {free_slots}")
+        while True in free_slots:
+            alpha, stretch = node.get_free_stretch()
+            beta = alpha + stretch
+            print(f"Start direction: {alpha}, end: {beta}")
+
+            if node.flag == 1 and stretch % 2:
+                raise RuntimeError(f"Unexpandable node {node}: marked nodes must have an even number of slots.")
+
+            # check the edge angles
+            alpha_node = node.step(alpha)
+            i_alpha_node, alpha_node = self.add_node(alpha_node)
+            beta_node = node.step(beta)
+            i_beta_node, beta_node = self.add_node(beta_node)
+            min_alpha_angle = max(5 - alpha_node.get_max_angle(direction=alpha + 5, orientation=False), 1)
+            min_beta_angle = max(5 - beta_node.get_max_angle(direction=beta + 5, orientation=True), 1)
+            if node.flag == 1:
+                min_alpha_angle = round_up(min_alpha_angle)
+                min_beta_angle = round_up(min_beta_angle)
+            # print(f"a {min_alpha_angle}, b {min_beta_angle}")
+
+            # TODO: continue from here
+            # split the stretch
+            # print(f"a>={min_alpha_angle}, b>={min_beta_angle}, {stretch}")
+            if stretch < min_alpha_angle + min_beta_angle:
+                if stretch > 4:
+                    raise RuntimeError(f"Unexpandable node {node}")
+                else:
+                    angles = [stretch]
+            else:
+                alpha_angle = random.randint(min_alpha_angle, min(4, stretch - min_beta_angle))
+                beta_angle = random.randint(min_beta_angle, min(4, stretch - alpha_angle))
+                angles = [alpha_angle]
+                while sum(angles) < stretch - beta_angle:
+                    # angle = min(4, stretch - sum(angles))
+                    # while angle > 1:
+                    #     if random.random() > 0.618:
+                    #         angle -= 1
+                    #     else:
+                    #         break
+                    # print(f"stretch = {remaining_stretch}")
+                    angle = sum(
+                        [random.randint(1, min(4, stretch - beta_angle - sum(angles))) for _ in range(10)]) // 10
+                    # angle = random.randint(1, min(4, stretch - sum(angles)))
+                    angles.append(angle)
+                    print(angles)
+                angles.append(beta_angle)
+            # print(f"Angles: {angles}, a>={min_alpha_angle}, b>={min_beta_angle}, {stretch}")
+
+            # build the rhombs
+            iA, A = self.add_node(node)
+            for angle in angles:
+                # print(f"angle: {angle}")
+                if not self.construct_rhomb(iA, alpha, angle):
+                    break
+                alpha += angle
+        # TODO: save node (and edge) status before expanding, keep new changes separate, submit them when sure
+        # print(f"Expanding node {node} completed")
 
     def get_node_xy(self, index: int, edge_length: float) -> Tuple[int, int]:
         return self.nodes[index].get_xy(edge_length)
