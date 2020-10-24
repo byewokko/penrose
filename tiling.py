@@ -190,6 +190,8 @@ class RhombNet:
     def add_node(self, node: PenroseNode4D, add_to_frontier: bool = False) -> (int, PenroseNode4D):
         index = self.find_node(node)
         if index > -1:
+            if self.nodes[index].flag == 0:
+                self.nodes[index].flag = node.flag
             return index, self.nodes[index]
         self.nodes.append(node)
         index = len(self.nodes) - 1
@@ -264,6 +266,75 @@ class RhombNet:
         self.add_edge(iC, iD)
         self.add_edge(iD, iA)
         self.add_rhomb(A, B, C, D, angle in (1, 4))
+        return True
+
+    def construct_penrose_rhomb(self, index: int, direction: int, angle: int):
+        """
+        :param index: Node index
+        :param direction: Direction to expand towards, must be in [0, 10)
+        :param angle: Angle to expand with, must be in {1, 2, 3, 4}
+        :return: True if successful, False if fail
+        """
+        assert angle in (1, 2, 3, 4)
+        start = direction % 10
+        iA = index
+        A = self.nodes[iA]
+        if not A.is_free(range(start, start + angle)):
+            print("A", A.free_slots, file=sys.stdout)
+            return False
+
+        B = A.step(start)
+        iB, B = self.add_node(B, True)
+        if not B.is_free(range(start + angle, start + 5)):
+            print("B", B.free_slots, file=sys.stdout)
+            return False
+
+        C = B.step(start + angle)
+        iC, C = self.add_node(C, True)
+        if not C.is_free(range(start + 5, start + 5 + angle)):
+            print("C", C.free_slots, file=sys.stdout)
+            return False
+
+        D = C.step(start + 5)
+        iD, D = self.add_node(D, True)
+        if not D.is_free(range(start + 5 + angle, start + 10)):
+            print("D", D.free_slots, file=sys.stdout)
+            return False
+
+        A.book_slots(range(start, start + angle))
+        B.book_slots(range(start + angle, start + 5))
+        C.book_slots(range(start + 5, start + 5 + angle))
+        D.book_slots(range(start + 5 + angle, start + 10))
+        self.add_edge(iA, iB)
+        self.add_edge(iB, iC)
+        self.add_edge(iC, iD)
+        self.add_edge(iD, iA)
+        self.add_rhomb(A, B, C, D, angle in (1, 4))
+
+        flags = [A.flag, B.flag, C.flag, D.flag]
+        print("flags", flags)
+        nodes = [A, B, C, D]
+        if flags.count(1) > 1:
+            raise RuntimeError("More than 1 marked vertex!")
+        elif flags.count(-1) == 4:
+            raise RuntimeError("All vertices are unmarked!")
+        elif flags.count(1) == 1:
+            flag = flags.index(1)
+            for i, node in enumerate(nodes):
+                if i != flag:
+                    node.flag = -1
+        else:
+            # no marked node
+            flag = flags.index(0)
+            # if angle in (2, 4):
+            #     flag = random.choice([0, 2])
+            # else:
+            #     flag = random.choice([1, 3])
+            for i, node in enumerate(nodes):
+                if i != flag:
+                    node.flag = -1
+                else:
+                    node.flag = 1
         return True
 
     def add_rhomb(self, a, b, c, d, rhomb_type):
@@ -361,20 +432,24 @@ class RhombNet:
                 else:
                     angles = [stretch]
             else:
-                alpha_angle = random.randint(min_alpha_angle, min(4, stretch - min_beta_angle))
-                beta_angle = random.randint(min_beta_angle, min(4, stretch - alpha_angle))
+                if node.flag == 1:
+                    if min_alpha_angle > 2:
+                        alpha_angle = 4
+                    else:
+                        alpha_angle = random.choice([2, 4])
+                    beta_angle = random.randint(min_beta_angle, min(4, stretch - alpha_angle))
+                else:
+                    alpha_angle = random.randint(min_alpha_angle, min(4, stretch - min_beta_angle))
+                    beta_angle = random.randint(min_beta_angle, min(4, stretch - alpha_angle))
                 angles = [alpha_angle]
                 while sum(angles) < stretch - beta_angle:
-                    # angle = min(4, stretch - sum(angles))
-                    # while angle > 1:
-                    #     if random.random() > 0.618:
-                    #         angle -= 1
-                    #     else:
-                    #         break
-                    # print(f"stretch = {remaining_stretch}")
-                    angle = sum(
-                        [random.randint(1, min(4, stretch - beta_angle - sum(angles))) for _ in range(10)]) // 10
-                    # angle = random.randint(1, min(4, stretch - sum(angles)))
+                    if node.flag == 1:
+                        if stretch - beta_angle - sum(angles) >= 4:
+                            angle = random.choice([2, 4])
+                        else:
+                            angle = 2
+                    else:
+                        angle = random.randint(1, min(4, stretch - sum(angles)))
                     angles.append(angle)
                     print(angles)
                 angles.append(beta_angle)
@@ -384,7 +459,7 @@ class RhombNet:
             iA, A = self.add_node(node)
             for angle in angles:
                 # print(f"angle: {angle}")
-                if not self.construct_rhomb(iA, alpha, angle):
+                if not self.construct_penrose_rhomb(iA, alpha, angle):
                     break
                 alpha += angle
         # TODO: save node (and edge) status before expanding, keep new changes separate, submit them when sure
@@ -435,7 +510,7 @@ def random_tiling(graph: RhombNet, mode: str = "edges"):
 def random_penrose_tiling(graph: RhombNet, mode: str = "edges"):
     graph.add_node(PenroseNode4D(flag=1), True)
     while True:
-        graph.expand_node()
+        graph.expand_penrose_node()
         if mode == "edges":
             yield from graph.edges
             if graph.stopflag:
