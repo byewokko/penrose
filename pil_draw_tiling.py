@@ -33,6 +33,47 @@ def draw_edge_v(edge):
     draw.line([x1 + off_x, y1 - off_y, x2 + off_x, y2 - off_y], width=2, fill=cr)
 
 
+def draw_edge_arrow(edge):
+    x1, y1, x2, y2 = list(edge.get_xy_coordinates(EDGE_LENGTH))
+    x1 += WIDTH/2
+    y1 += HEIGHT/2
+    x2 += WIDTH/2
+    y2 += HEIGHT/2
+    d = edge.direction()
+    if edge.value() in (-1, 1):
+        mid = (x1 + x2) / 2, (y1 + y2) / 2
+        sgn = edge.value()
+        tip = (sgn * math.cos(2 * math.pi/10 * d) * EDGE_LENGTH / 6 + mid[0],
+               -sgn * math.sin(2 * math.pi/10 * d) * EDGE_LENGTH / 6 + mid[1])
+        left = (sgn * math.cos(2 * math.pi/10 * (d + 4)) * EDGE_LENGTH / 6 + mid[0],
+                -sgn * math.sin(2 * math.pi/10 * (d + 4)) * EDGE_LENGTH / 6 + mid[1])
+        right = (sgn * math.cos(2 * math.pi/10 * (d - 4)) * EDGE_LENGTH / 6 + mid[0],
+                 -sgn * math.sin(2 * math.pi/10 * (d - 4)) * EDGE_LENGTH / 6 + mid[1])
+        draw.polygon([tip, left, right], fill="white")
+    elif edge.value() in (-2, 2):
+        mid = (x1 + x2) / 2, (y1 + y2) / 2
+        sgn = edge.value() / 2
+        mid = (mid[0] + math.cos(2 * math.pi / 10 * d) * EDGE_LENGTH / 8,
+               mid[1] - math.sin(2 * math.pi / 10 * d) * EDGE_LENGTH / 8)
+        tip = (sgn * math.cos(2 * math.pi/10 * d) * EDGE_LENGTH / 8 + mid[0],
+               -sgn * math.sin(2 * math.pi/10 * d) * EDGE_LENGTH / 8 + mid[1])
+        left = (sgn * math.cos(2 * math.pi/10 * (d + 4)) * EDGE_LENGTH / 8 + mid[0],
+                -sgn * math.sin(2 * math.pi/10 * (d + 4)) * EDGE_LENGTH / 8 + mid[1])
+        right = (sgn * math.cos(2 * math.pi/10 * (d - 4)) * EDGE_LENGTH / 8 + mid[0],
+                 -sgn * math.sin(2 * math.pi/10 * (d - 4)) * EDGE_LENGTH / 8 + mid[1])
+        draw.polygon([tip, left, right], fill="white")
+
+        mid = (mid[0] - math.cos(2 * math.pi / 10 * d) * EDGE_LENGTH / 4,
+               mid[1] + math.sin(2 * math.pi / 10 * d) * EDGE_LENGTH / 4)
+        tip = (sgn * math.cos(2 * math.pi/10 * d) * EDGE_LENGTH / 8 + mid[0],
+               -sgn * math.sin(2 * math.pi/10 * d) * EDGE_LENGTH / 8 + mid[1])
+        left = (sgn * math.cos(2 * math.pi/10 * (d + 4)) * EDGE_LENGTH / 8 + mid[0],
+                -sgn * math.sin(2 * math.pi/10 * (d + 4)) * EDGE_LENGTH / 8 + mid[1])
+        right = (sgn * math.cos(2 * math.pi/10 * (d - 4)) * EDGE_LENGTH / 8 + mid[0],
+                 -sgn * math.sin(2 * math.pi/10 * (d - 4)) * EDGE_LENGTH / 8 + mid[1])
+        draw.polygon([tip, left, right], fill="white")
+
+
 def draw_edges(graph):
     if isinstance(graph, list):
         for edge in graph:

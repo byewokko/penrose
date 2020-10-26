@@ -10,7 +10,7 @@ import numpy as np
 import tiling
 
 #debug
-from pil_draw_tiling import draw_edge, draw_edges, draw_node, draw_nodes, show, clear
+from pil_draw_tiling import draw_edge, draw_edges, draw_node, draw_nodes, draw_edge_arrow, show, clear
 
 INVERT_Y = True
 
@@ -333,7 +333,8 @@ class RhombNet:
             a_angle = None
 
         if not a_angle:
-            raise RuntimeError(f"Cannot expand {edge}")
+            print(f"Cannot expand {edge}", file=sys.stderr)
+            return
         self.build_rhomb_from_edge(edge, a_angle)
         print(f"Graph contains {len(self.edges)} edges. {len(self.edge_frontier)} edges in frontier.")
 
@@ -355,16 +356,18 @@ class RhombNet:
         b.occupy_angle(edge.direction() + a_angle, 5 - a_angle, 1)
         c.occupy_angle(edge.direction() + 5, a_angle, 1)
         d.occupy_angle(edge.direction() + a_angle + 5, 5 - a_angle, 1)
-        # clear()
-        # draw_edges(self)
-        # draw_node(a, "yellow")
-        # draw_nodes([b, c, d])
-        # show()
         ab = edge
         ab.occupy_side("left")
         bc = self.add_edge(RhombEdge(b, c, edge_values[1], [False, True]))
         cd = self.add_edge(RhombEdge(c, d, edge_values[2], [False, True]))
         da = self.add_edge(RhombEdge(d, a, edge_values[3], [False, True]))
+        clear()
+        draw_edges(self)
+        draw_node(a, "yellow")
+        draw_nodes([b, c, d])
+        for e in (ab, bc, cd, da):
+            draw_edge_arrow(e)
+        show()
         for e in ab, bc, cd, da:
             if e.is_free("any"):
                 self.edge_frontier_add(e)

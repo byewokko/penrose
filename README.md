@@ -9,4 +9,6 @@ Penrose tiling generation with processing.py. Experiments and interactive stuff.
 
 ### RESOURCES
 
-[Penrose tiling from pentagrid](http://www.ams.org/publicoutreach/feature-column/fcarc-ribbons)
+- [Pentagrid and 5D space](http://www.ams.org/publicoutreach/feature-column/fcarc-ribbons)
+- [Pentagrid formulas](https://web.williams.edu/Mathematics/sjmiller/public_html/hudson/HRUMC-Mowry&Shukla_Pentagrids%20and%20Penrose.pdf)
+- [More Penrose resources](http://www.math.utah.edu/~treiberg/PenroseSlides.pdf)
