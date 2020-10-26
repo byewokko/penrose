@@ -24,8 +24,8 @@ def draw():
     translate(width / 2, height / 2)
 
     try:
-        n1, n2 = [x.get_xy(30) for x in next(walk)]
-        line(*n1, *n2)
+        n1, n2, t = next(walk)
+        line(*n1.get_xy(30), *n2.get_xy(30))
     except StopIteration:
         pass
     # clear()

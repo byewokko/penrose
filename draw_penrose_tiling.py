@@ -1,43 +1,44 @@
 from p5 import *
-import tiling
+import tiling_new
 
 steps = 100
 edge_length = 50
+draw_once = True
 
 walk = None
 
 
 def setup():
     size(1024, 768)
-    background(255)
-    stroke_weight(2)
+    stroke_weight(3)
 
 
 def draw():
-    # global img
     if frame_count % 2:
         return
 
-    # if img:
-    #     image(img, 0, 0)
+    global draw_once
+    if draw_once:
+        background(0)
+        draw_once = False
+
     push_matrix()
     translate(width / 2, height / 2)
 
     try:
-        n1, n2 = [x.get_xy(30) for x in next(walk)]
-        line(*n1, *n2)
+        edge = next(walk)
+        if edge.value() in (2, -2):
+            stroke(255, 127, 191, 255)
+        else:
+            stroke(191, 255, 63, 255)
+        line(*edge.get_xy_coordinates(100))
     except StopIteration:
         pass
-    for n in graph.nodes:
-        if n.flag == 1:
-            circle(*n.get_xy(30), 5)
-    # clear()
-    # img = get()
-    # circle(*n2, 5)
+
     pop_matrix()
 
 
 if __name__ == "__main__":
-    graph = tiling.RhombNet()
-    walk = tiling.random_penrose_tiling(graph)
+    graph = tiling_new.RhombNet()
+    walk = tiling_new.random_tiling(graph)
     run()

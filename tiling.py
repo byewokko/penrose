@@ -181,7 +181,7 @@ class PenroseNode4D(Node4D):
 class RhombNet:
     def __init__(self):
         self.nodes: List[PenroseNode4D] = []
-        self.edges: List[Tuple[PenroseNode4D, PenroseNode4D]] = []
+        self.edges: List[Tuple[PenroseNode4D, PenroseNode4D, int]] = []
         self.rhombs: List[Tuple[PenroseNode4D, PenroseNode4D, PenroseNode4D, PenroseNode4D, bool]] = []
         self.frontier: List[Tuple] = []
         self.debug = []
@@ -217,12 +217,13 @@ class RhombNet:
 
     def add_edge(self,
                  a: Union[int, PenroseNode4D],
-                 b: Union[int, PenroseNode4D]):
+                 b: Union[int, PenroseNode4D],
+                 type: Union[-2, -1, 0, 1, 2] = 0):
         if isinstance(a, int):
             a = self.get_node(a)
         if isinstance(b, int):
             b = self.get_node(b)
-        self.edges.append((a, b))
+        self.edges.append((a, b, type))
 
     def construct_rhomb(self, index: int, direction: int, angle: int):
         """
@@ -469,11 +470,11 @@ class RhombNet:
         return self.nodes[index].get_xy(edge_length)
 
     def generate_edges(self, edge_length: float):
-        for n1, n2 in self.edges:
+        for n1, n2, t in self.edges:
             yield *n1.get_xy(edge_length), *n2.get_xy(edge_length)
 
     def consume_edges(self, edge_length: float):
-        for n1, n2 in self.edges:
+        for n1, n2, t in self.edges:
             yield *n1.get_xy(edge_length), *n2.get_xy(edge_length)
         self.edges = []
 
