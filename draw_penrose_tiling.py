@@ -1,5 +1,5 @@
 from p5 import *
-import tiling_new
+import compose
 
 steps = 100
 edge_length = 50
@@ -39,6 +39,6 @@ def draw():
 
 
 if __name__ == "__main__":
-    graph = tiling_new.RhombNet()
-    walk = tiling_new.random_tiling(graph)
+    graph = compose.RhombNet()
+    walk = compose.random_tiling(graph)
     run()

@@ -1,5 +1,5 @@
 from p5 import *
-import tiling_new
+import compose
 
 counter = 0
 edge_length = 50
@@ -46,10 +46,10 @@ def draw():
 
 
 if __name__ == "__main__":
-    graph = tiling_new.RhombNet()
-    a = graph.add_node(tiling_new.RhombNode())
+    graph = compose.RhombNet()
+    a = graph.add_node(compose.RhombNode())
     b = graph.add_node(a.step(0))
-    e = graph.add_edge(tiling_new.RhombEdge(a, b, 1))
+    e = graph.add_edge(compose.RhombEdge(a, b, 1))
     graph.edge_frontier_add(e)
     graph.expand_edge(graph.edge_frontier_pop())
     run()

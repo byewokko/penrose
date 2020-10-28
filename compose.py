@@ -9,6 +9,15 @@ import numpy as np
 
 import tiling
 
+
+"""
+An attempt to create Penrose tiling with bottom up approach. The rhomb tiles are generated randomly, 
+obeying only local rules. It doesn't work, as shown in the linked articles.
+
+Plus, my implementation is buggy.
+"""
+
+
 #debug
 from pil_draw_tiling import draw_edge, draw_edges, draw_node, draw_nodes, draw_edge_arrow, show, clear
 
@@ -361,13 +370,13 @@ class RhombNet:
         bc = self.add_edge(RhombEdge(b, c, edge_values[1], [False, True]))
         cd = self.add_edge(RhombEdge(c, d, edge_values[2], [False, True]))
         da = self.add_edge(RhombEdge(d, a, edge_values[3], [False, True]))
-        clear()
-        draw_edges(self)
-        draw_node(a, "yellow")
-        draw_nodes([b, c, d])
-        for e in (ab, bc, cd, da):
-            draw_edge_arrow(e)
-        show()
+        # clear()
+        # draw_edges(self)
+        # draw_node(a, "yellow")
+        # draw_nodes([b, c, d])
+        # for e in (ab, bc, cd, da):
+        #     draw_edge_arrow(e)
+        # show()
         for e in ab, bc, cd, da:
             if e.is_free("any"):
                 self.edge_frontier_add(e)
