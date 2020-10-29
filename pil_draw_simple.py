@@ -23,8 +23,21 @@ def draw_lines(lines: Iterable, color: str = "white"):
         draw_line(*line, color=color)
 
 
+def draw_edge(v1: tuple, v2: tuple, color: str = "white"):
+    x1 = WIDTH / 2 + v1[0] * SCALE
+    y1 = HEIGHT / 2 - v1[1] * SCALE
+    x2 = WIDTH / 2 + v2[0] * SCALE
+    y2 = HEIGHT / 2 - v2[1] * SCALE
+    draw.line([x1, y1, x2, y2], width=1, fill=color)
+
+
+def draw_edges(lines: Iterable, color: str = "white"):
+    for line in lines:
+        draw_edge(*line, color=color)
+
+
 def draw_point(x: float, y: float, color: str = "red"):
-    RADIUS = 2
+    RADIUS = 1
     x = WIDTH / 2 + x * SCALE
     y = HEIGHT / 2 - y * SCALE
     draw.ellipse([x - RADIUS, y - RADIUS, x + RADIUS, y + RADIUS], fill=color)

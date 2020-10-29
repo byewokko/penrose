@@ -30,10 +30,12 @@ def _set_intersections(lines: np.ndarray):
     return intersections
 
 
-def intersection(l: np.ndarray, m: np.ndarray):
+def intersection(l: Union[np.ndarray, list], m: Union[np.ndarray, list], mode: str = "2d"):
     cross = np.cross(l, m)
     if cross[2] == 0:
         return None
+    if mode == "3d":
+        return cross / cross[2]
     return cross[:2] / cross[2]
 
 
@@ -102,13 +104,13 @@ class Pentagrid:
                 y0 = -np.cos(dim * 2 * np.pi / 5) * (c + self._base_offset[dim])
 
 
-def main():
+def draw_pentagrid():
     grid_range = range(-10, 10)
     box = (-30, 20, 30, -20)
-    scale = 5
+    scale = 3
     grid = Pentagrid()
     lines = generate_grid_lines(grid, grid_range, box) * scale
-    points = generate_intersection_points(grid, grid_range) * scale
+    points = calculate_intersection_points(grid, grid_range) * scale
 
     # print(lines)
     # print(points)
@@ -117,17 +119,31 @@ def main():
     draw.show()
 
 
-def generate_intersection_points(grid, grid_range):
-    # TODO: use matrices?
-    points = []
+def calculate_intersection_points(grid, grid_range):
+    # TODO: use matrices and meshgrid?
+    intersections = []
     for i in grid_range:
+        print(f"\rCalculating pentagrid nodes: {i}/{grid_range}", end="", file=sys.stderr)
         for j in grid_range:
             for a_dim, b_dim in grid._base_intersections.keys():
                 a = grid.get_line_norm(a_dim, i)
                 b = grid.get_line_norm(b_dim, j)
                 point = intersection(a, b)
-                points.append(point)
-    return np.asarray(points)
+                intersections.append(point)
+    return np.asarray(intersections)
+
+
+def calculate_intersection_dict(grid, grid_range):
+    intersections = {}
+    for i in grid_range:
+        print(f"\rCalculating pentagrid nodes: {i}/{grid_range}", end="", file=sys.stderr)
+        for j in grid_range:
+            for a_dim, b_dim in grid._base_intersections.keys():
+                a = grid.get_line_norm(a_dim, i)
+                b = grid.get_line_norm(b_dim, j)
+                point = intersection(a, b, "3d")
+                intersections[frozenset([(a_dim, i), (b_dim, j)])] = point
+    return intersections
 
 
 def generate_grid_lines(grid, grid_range, box):
@@ -151,5 +167,66 @@ def generate_grid_lines(grid, grid_range, box):
     return np.asarray(lines)
 
 
+def calculate_midpoints(grid, intersections, grid_range):
+    midpoints = {}
+    coordinates = itertools.product(*[grid_range for _ in range(5)])
+    for n, field in enumerate(coordinates):
+        print(f"\rCalculating pentagrid midpoints: {n}/{len(grid_range)**5}", end="", file=sys.stderr)
+        points = set(
+            itertools.combinations([(d, i) for d, i in enumerate(field)] + [(d, i+1) for d, i in enumerate(field)], r=2)
+        )
+        for d in range(5):
+            active = set()
+            for point in points:
+                if point[0][0] == point[1][0]:
+                    continue
+                if point[0][0] == d or point[1][0] == d:
+                    active.add(point)
+                    continue  # skip points ON the line
+                xy = intersections[frozenset(point)]
+                a = grid.get_line_norm(d, field[d])
+                b = grid.get_line_norm(d, field[d] + 1)
+                if (np.dot(a, xy) > 0) == (np.dot(b, xy) < 0):
+                    active.add(point)
+            points = active
+        if points:
+            midpoints[field] = np.mean([intersections[frozenset(point)] for point in points], axis=0)
+    return midpoints
+
+
+def connect_midpoints(vertex_dict):
+    edges = set()
+    for vertex in vertex_dict.keys():
+        for i in range(len(vertex)):
+            plus = vertex[:i] + (vertex[i] + 1,) + vertex[i+1:]
+            minus = vertex[:i] + (vertex[i] - 1,) + vertex[i+1:]
+            if plus in vertex_dict:
+                edges.add(frozenset((vertex, plus)))
+            if minus in vertex_dict:
+                edges.add(frozenset((vertex, minus)))
+    return edges
+
+
+def main():
+    scale = 8
+    box = (-30, 20, 30, -20)
+    size = 5
+    grid = Pentagrid()
+    lines = generate_grid_lines(grid, range(-size, size), box) * scale
+    intersections = calculate_intersection_dict(grid, range(-size, size + 1))
+    vertex_dict = calculate_midpoints(grid, intersections, range(-size, size))
+    vertices = np.asarray(list(vertex_dict.values()))[:, :2] * scale
+    edges = connect_midpoints(vertex_dict)
+    edges_xy = np.asarray([(vertex_dict[v1][:2], vertex_dict[v2][:2]) for v1, v2 in edges]) * scale
+
+    # print(lines)
+    # print(points)
+    # draw.draw_lines(lines, color="blue")
+    draw.draw_points(vertices)
+    draw.draw_edges(edges_xy, color="white")
+    draw.show()
+
+
 if __name__ == "__main__":
     main()
+    # draw_pentagrid()
