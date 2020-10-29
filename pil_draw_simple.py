@@ -24,7 +24,7 @@ def draw_lines(lines: Iterable, color: str = "white"):
 
 
 def draw_point(x: float, y: float, color: str = "red"):
-    RADIUS = 3
+    RADIUS = 2
     x = WIDTH / 2 + x * SCALE
     y = HEIGHT / 2 - y * SCALE
     draw.ellipse([x - RADIUS, y - RADIUS, x + RADIUS, y + RADIUS], fill=color)

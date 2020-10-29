@@ -76,6 +76,11 @@ class Pentagrid:
             cross = cross[1]
         return cross
 
+    def get_intersection(self, a_dim: int, a_ind: float, b_dim: int, b_ind: float):
+        return (self._base_intersections[frozenset([a_dim, b_dim])]
+                + a_ind * self._base_lines[a_dim][:2]
+                + b_ind * self._base_lines[b_dim][:2])
+
     def get_nodes(self, index_range: Tuple[int, int]):
         """
         5 dimensions
@@ -98,15 +103,39 @@ class Pentagrid:
 
 
 def main():
-    top = 20
-    bottom = -20
-    left = -30
-    right = 30
+    grid_range = range(-10, 10)
+    box = (-30, 20, 30, -20)
     scale = 5
     grid = Pentagrid()
+    lines = generate_grid_lines(grid, grid_range, box) * scale
+    points = generate_intersection_points(grid, grid_range) * scale
+
+    # print(lines)
+    # print(points)
+    draw.draw_lines(lines)
+    draw.draw_points(points)
+    draw.show()
+
+
+def generate_intersection_points(grid, grid_range):
+    # TODO: use matrices?
+    points = []
+    for i in grid_range:
+        for j in grid_range:
+            for a_dim, b_dim in grid._base_intersections.keys():
+                a = grid.get_line_norm(a_dim, i)
+                b = grid.get_line_norm(b_dim, j)
+                point = intersection(a, b)
+                points.append(point)
+    return np.asarray(points)
+
+
+def generate_grid_lines(grid, grid_range, box):
+    # TODO: use matrices?
+    left, top, right, bottom = box
     lines = []
-    for d in range(5):
-        for i in range(2):
+    for i in grid_range:
+        for d in range(5):
             x1 = grid.get_line_x(d, i, bottom)
             if x1 is None:
                 x1 = left
@@ -118,15 +147,8 @@ def main():
             x1, x2 = max([x1, left]), min([x2, right])
             y1 = grid.get_line_y(d, i, x1)
             y2 = grid.get_line_y(d, i, x2)
-            lines.append(np.asarray([x1, y1, x2, y2]) * scale)
-    print(lines)
-    points = []
-    for x in grid._base_intersections.values():
-        points.append(x * scale)
-    print(points)
-    draw.draw_lines(lines)
-    draw.draw_points(points)
-    draw.show()
+            lines.append([x1, y1, x2, y2])
+    return np.asarray(lines)
 
 
 if __name__ == "__main__":
