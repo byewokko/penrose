@@ -3,8 +3,8 @@ from typing import Iterable
 
 from PIL import Image, ImageDraw
 
-WIDTH, HEIGHT = 800, 600
-SCALE = 10
+WIDTH, HEIGHT = 4*1280, 4*1024
+SCALE = 32
 
 img = Image.new("RGB", (WIDTH, HEIGHT))
 draw = ImageDraw.Draw(img)
@@ -23,17 +23,17 @@ def draw_lines(lines: Iterable, color: str = "white"):
         draw_line(*line, color=color)
 
 
-def draw_edge(v1: tuple, v2: tuple, color: str = "white"):
+def draw_edge(v1: tuple, v2: tuple, color: str = "white", width: int = 5):
     x1 = WIDTH / 2 + v1[0] * SCALE
     y1 = HEIGHT / 2 - v1[1] * SCALE
     x2 = WIDTH / 2 + v2[0] * SCALE
     y2 = HEIGHT / 2 - v2[1] * SCALE
-    draw.line([x1, y1, x2, y2], width=1, fill=color)
+    draw.line([x1, y1, x2, y2], width=width, fill=color)
 
 
-def draw_edges(lines: Iterable, color: str = "white"):
+def draw_edges(lines: Iterable, color: str = "white", width: int = 5):
     for line in lines:
-        draw_edge(*line, color=color)
+        draw_edge(*line, color=color, width=width)
 
 
 def draw_point(x: float, y: float, color: str = "red"):

@@ -171,7 +171,7 @@ def calculate_midpoints(grid, intersections, grid_range):
     midpoints = {}
     coordinates = itertools.product(*[grid_range for _ in range(5)])
     for n, field in enumerate(coordinates):
-        print(f"\rCalculating pentagrid midpoints: {n}/{len(grid_range)**5}", end="", file=sys.stderr)
+        print(f"\rCalculating pentagrid midpoints: {n+1}/{len(grid_range)**5}", end="", file=sys.stderr)
         points = set(
             itertools.combinations([(d, i) for d, i in enumerate(field)] + [(d, i+1) for d, i in enumerate(field)], r=2)
         )
@@ -191,6 +191,7 @@ def calculate_midpoints(grid, intersections, grid_range):
             points = active
         if points:
             midpoints[field] = np.mean([intersections[frozenset(point)] for point in points], axis=0)
+    print("", file=sys.stderr)
     return midpoints
 
 
@@ -207,14 +208,32 @@ def connect_midpoints(vertex_dict):
     return edges
 
 
+def save_vertex_dict(vertex_dict, filename):
+    with open(filename, "w") as f:
+        for node, xyz in vertex_dict.items():
+            print(",".join(map(str, node)), ",".join(map(str, xyz)), sep=";", file=f)
+
+
+def load_vertex_dict(filename):
+    vertex_dict = {}
+    with open(filename, "r") as f:
+        for line in f:
+            node, xyz = line.strip().split(";")
+            node = tuple(map(int, node.split(",")))
+            xyz = np.asarray([float(x) for x in xyz.split(",")])
+            vertex_dict[node] = xyz
+    return vertex_dict
+
+
 def main():
-    scale = 8
+    scale = 12
     box = (-30, 20, 30, -20)
     size = 5
     grid = Pentagrid()
     lines = generate_grid_lines(grid, range(-size, size), box) * scale
     intersections = calculate_intersection_dict(grid, range(-size, size + 1))
     vertex_dict = calculate_midpoints(grid, intersections, range(-size, size))
+    save_vertex_dict(vertex_dict, f"vertexdict_{size}.txt")
     vertices = np.asarray(list(vertex_dict.values()))[:, :2] * scale
     edges = connect_midpoints(vertex_dict)
     edges_xy = np.asarray([(vertex_dict[v1][:2], vertex_dict[v2][:2]) for v1, v2 in edges]) * scale
