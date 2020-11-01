@@ -60,7 +60,7 @@ class Pentagrid:
         :param index:
         :return:
         """
-        return self._base_lines[dimension] + self._base_offset[dimension] - [0, 0, index]
+        return self._base_lines[dimension] + self._base_offset[dimension] + [0, 0, index]
 
     def get_line_x(self, dimension: int, index: float, y: float):
         line = self.get_line_norm(dimension, index)
@@ -226,9 +226,9 @@ def load_vertex_dict(filename):
 
 
 def main():
-    scale = 12
+    scale = 15
     box = (-30, 20, 30, -20)
-    size = 5
+    size = 3
     grid = Pentagrid()
     lines = generate_grid_lines(grid, range(-size, size), box) * scale
     intersections = calculate_intersection_dict(grid, range(-size, size + 1))

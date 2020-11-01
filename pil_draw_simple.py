@@ -4,7 +4,7 @@ from typing import Iterable
 from PIL import Image, ImageDraw
 
 WIDTH, HEIGHT = 4*1280, 4*1024
-SCALE = 32
+SCALE = 50
 
 img = Image.new("RGB", (WIDTH, HEIGHT))
 draw = ImageDraw.Draw(img)
@@ -37,7 +37,7 @@ def draw_edges(lines: Iterable, color: str = "white", width: int = 5):
 
 
 def draw_point(x: float, y: float, color: str = "red"):
-    RADIUS = 1
+    RADIUS = 3
     x = WIDTH / 2 + x * SCALE
     y = HEIGHT / 2 - y * SCALE
     draw.ellipse([x - RADIUS, y - RADIUS, x + RADIUS, y + RADIUS], fill=color)

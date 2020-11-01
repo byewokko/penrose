@@ -88,111 +88,190 @@ class TimeitLoop:
 
 
 class NestedDict:
-    def __init__(self, size, group_size=2):
-        self.d = {}
-        for group in itertools.combinations(range(size), r=group_size):
-            self[group] = random.random()
+    def __init__(self, data=None):
+        self._d = {}
+        if data:
+            if isinstance(data, dict):
+                # TODO: verify
+                self._d = data
 
     def __getitem__(self, item):
-        return nesteddict_get(self.d, item)
+        try:
+            return nesteddict_get(self._d, item)
+        except KeyError:
+            return None
 
     def __setitem__(self, key, value):
         for perm in itertools.permutations(key):
-            nesteddict_set(self.d, perm, value)
+            nesteddict_set(self._d, perm, value)
+
+    def extract(self, key):
+        return NestedDict(self[(key,)])
 
 
 class NestedDictSorted:
-    def __init__(self, size, group_size=2):
-        self.d = {}
-        for group in itertools.combinations(range(size), r=group_size):
-            self[group] = random.random()
+    def __init__(self, data=None):
+        self._d = {}
+        if data:
+            if isinstance(data, dict):
+                # TODO: verify
+                self._d = data
 
     def __getitem__(self, item):
         item = sorted(item)
-        return nesteddict_get(self.d, item)
+        try:
+            return nesteddict_get(self._d, item)
+        except KeyError:
+            return None
 
     def __setitem__(self, key, value):
         key = sorted(key)
-        nesteddict_set(self.d, key, random.random())
+        nesteddict_set(self._d, key, random.random())
+
+    def extract(self, key):
+        def extract(d, key):
+            # if not isinstance(d, dict):
+            #     return
+            d_new = {}
+            for k in d.keys():
+                if k == key:
+                    if isinstance(d[k], dict):
+                        d_new.update(d[k])
+                    else:
+                        return d[k]
+                elif k < key:
+                    if isinstance(d[k], dict):
+                        tmp = extract(d[k], key)
+                        if tmp:
+                            d_new[k] = tmp
+            # print(d_new)
+            return d_new
+        return NestedDictSorted(extract(self._d, key))
 
 
 class FrozenSetDict:
-    def __init__(self, size, group_size=2):
-        self.d = {}
-        for group in itertools.combinations(range(size), r=group_size):
-            self[group] = random.random()
+    def __init__(self, data=None):
+        self._d = {}
+        if data:
+            if isinstance(data, dict):
+                # TODO: verify
+                self._d = data
 
     def __getitem__(self, item):
-        return self.d[frozenset(item)]
+        try:
+            return self._d[frozenset(item)]
+        except KeyError:
+            return None
 
     def __setitem__(self, key, value):
-        self.d[frozenset(key)] = value
+        self._d[frozenset(key)] = value
+
+    def extract(self, key):
+        d_new = {}
+        difset = {key}
+        for k, v in self._d.items():
+            if key in k:
+                d_new[k.difference(difset)] = v
+        return FrozenSetDict(d_new)
 
 
 class TupleDict:
-    def __init__(self, size, group_size=2):
-        self.d = {}
-        for group in itertools.combinations(range(size), r=group_size):
-            self[group] = random.random()
+    def __init__(self, data=None):
+        self._d = {}
+        if data:
+            if isinstance(data, dict):
+                # TODO: verify
+                self._d = data
 
     def __getitem__(self, item):
-        return self.d[tuple(item)]
+        try:
+            return self._d[tuple(item)]
+        except KeyError:
+            return None
 
     def __setitem__(self, key, value):
         for perm in itertools.permutations(key):
-            self.d[tuple(perm)] = value
+            self._d[tuple(perm)] = value
+
+    def extract(self, key):
+        d_new = {}
+        for k, v in self._d.items():
+            if key in k:
+                d_new[tuple(i for i in k if i != key)] = v
+        return TupleDict(d_new)
 
 
 class TupleDictSorted:
-    def __init__(self, size, group_size=2):
-        self.d = {}
-        for group in itertools.combinations(range(size), r=group_size):
-            value = random.random()
-            group = sorted(group)
-            self[group] = value
+    def __init__(self, data=None):
+        self._d = {}
+        if data:
+            if isinstance(data, dict):
+                # TODO: verify
+                self._d = data
 
     def __getitem__(self, item):
         item = sorted(item)
-        return self.d[tuple(item)]
+        try:
+            return self._d[tuple(item)]
+        except KeyError:
+            return None
 
     def __setitem__(self, key, value):
         item = sorted(key)
-        self.d[tuple(item)] = value
+        self._d[tuple(item)] = value
+
+    def extract(self, key):
+        d_new = {}
+        for k, v in self._d.items():
+            if key in k:
+                d_new[tuple(i for i in k if i != key)] = v
+        return TupleDictSorted(d_new)
 
 
 def test_memory_usage(size, group):
     for Struct in (NestedDict, NestedDictSorted, TupleDict, TupleDictSorted, FrozenSetDict):
-        struct = Struct(size, group)
-        print(f"{total_size(struct.d):20d} {Struct.__name__}")
+        struct = Struct()
+        print(f"{total_size(struct._d):20d} {Struct.__name__}")
 
 
-def test_init_time(size, group, repeat=10):
+def test_extract_time(size, group, repeat=10):
+    indices = list(itertools.combinations(range(size), r=group))
+    values = [random.random() for _ in range(len(indices))]
+    random.shuffle(indices)
     for Struct in (NestedDict, NestedDictSorted, TupleDict, TupleDictSorted, FrozenSetDict):
         measure = []
+        struct = Struct()
+        for i, v in zip(indices, values):
+            struct[i] = v
         with TimeitLoop(repeat, measure) as loop:
-            for x in loop:
-                _ = Struct(size, group)
+            for _ in loop:
+                for k in range(size):
+                    ex = struct.extract(k)
         print(f"{measure[0]:20f} {Struct.__name__}")
 
 
 def test_write_all(size, group, repeat=10):
     indices = list(itertools.combinations(range(size), r=group))
+    values = [random.random() for _ in range(len(indices))]
     random.shuffle(indices)
     for Struct in (NestedDict, NestedDictSorted, TupleDict, TupleDictSorted, FrozenSetDict):
-        struct = Struct(size, group)
+        struct = Struct()
         measure = []
         with TimeitLoop(repeat, measure) as loop:
             for x in loop:
-                for i in indices:
-                    struct[i] = 0
+                for i, v in zip(indices, values):
+                    struct[i] = v
         print(f"{measure[0]:20f} {Struct.__name__}")
 
 
 def test_access_all(size, group, repeat=10):
     indices = list(itertools.combinations(range(size), r=group))
+    values = [random.random() for _ in range(len(indices))]
     random.shuffle(indices)
     for Struct in (NestedDict, NestedDictSorted, TupleDict, TupleDictSorted, FrozenSetDict):
-        struct = Struct(size, group)
+        struct = Struct()
+        for i, v in zip(indices, values):
+            struct[i] = v
         measure = []
         with TimeitLoop(repeat, measure) as loop:
             for x in loop:
@@ -201,11 +280,15 @@ def test_access_all(size, group, repeat=10):
         print(f"{measure[0]:20f} {Struct.__name__}")
 
 
-if __name__ == "__main__":
-    size = (4+3+2+1)*10*10
-    group = 2
-    repeat = 100
-    # test_init_time(size, group, repeat)
+def main():
+    size = (4 + 3 + 2 + 1) * 10 #* 10
+    group = 3
+    repeat = 5
+    test_extract_time(size, group, repeat)
     # test_memory_usage(size, group)
-    test_write_all(size, group, repeat)
+    # test_write_all(size, group, repeat)
     # test_access_all(size, group, repeat)
+
+
+if __name__ == "__main__":
+    main()
