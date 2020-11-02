@@ -36,11 +36,10 @@ def draw_edges(lines: Iterable, color: str = "white", width: int = 5):
         draw_edge(*line, color=color, width=width)
 
 
-def draw_point(x: float, y: float, color: str = "red"):
-    RADIUS = 3
+def draw_point(x: float, y: float, color: str = "red", size: int = 3):
     x = WIDTH / 2 + x * SCALE
     y = HEIGHT / 2 - y * SCALE
-    draw.ellipse([x - RADIUS, y - RADIUS, x + RADIUS, y + RADIUS], fill=color)
+    draw.ellipse([x - size, y - size, x + size, y + size], fill=color)
 
 
 def draw_points(points: Iterable, color: str = "red"):

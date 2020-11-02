@@ -8,6 +8,7 @@ from collections import OrderedDict, deque
 import numpy as np
 import itertools
 
+import transformations as trans
 import pil_draw_simple as draw
 from structures import FrozenSetDict
 
@@ -107,6 +108,8 @@ class Pentagrid:
             - dot product of all the points with each line
             - count >0 for each point --> index
         """
+        grid = np.meshgrid(np.arange(*index_range), np.arange(*index_range), [1])
+
         for g1 in range(self.GROUPS - 1):
             lines = np.stack([self.get_line(g1, i) for i in index_range]).T
 
@@ -128,6 +131,17 @@ def load_vertex_dict(filename):
     return vertex_dict
 
 
+def test():
+    grid = np.array(np.meshgrid(np.arange(5), np.arange(5), [1])).T.reshape(-1, 3) * 5
+    for x, y, z in grid:
+        draw.draw_point(x, y, "gray", 10)
+    skew_matrix = trans.skew(np.sin(2*np.pi/5 *3))
+    grid_skewed = np.matmul(skew_matrix, grid.T).T
+    for x, y, z in grid_skewed:
+        draw.draw_point(x, y, "red", 10)
+    draw.show()
+
+
 def main():
     grid = Pentagrid()
     grid.calculate_grid_edges((-10, 10))
@@ -139,5 +153,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    test()
     # draw_pentagrid()
