@@ -39,6 +39,12 @@ def intersection(l: Union[np.ndarray, list], m: Union[np.ndarray, list]):
     return cross / cross[2]
 
 
+def triangle_iterator(n: int):
+    for i in range(n - 1):
+        for j in range(i + 1, n):
+            yield i, j
+
+
 class Pentagrid:
     """
     Five families of equidistant parallel lines.
@@ -81,25 +87,50 @@ class Pentagrid:
             cross = cross[1]
         return cross
 
-    def calculate_intersections(self, index_range: Tuple[int, int]):
-        # TODO: use one big matrix of values + one matrix of indices
+    def calculate_intersections_as_dict(self, index_range: Tuple[int, int]):
         intersections = FrozenSetDict()
         base_grid = np.array(
             np.meshgrid(np.arange(*index_range), np.arange(*index_range), [1])).T.reshape(-1, 3).T
-        for g1 in range(self.GROUPS - 1):
-            for g2 in range(g1 + 1, self.GROUPS):
-                # g1 corresponds to x
-                # g2 corresponds to y
-                iota = 2 * np.pi / 5 * (g2 - g1)
-                theta = 2 * np.pi / 5 * g1
-                trans_matrix = np.matmul(trans.skew_rot_y(iota),
-                                         trans.translate(self._base_offset[g1][2], self._base_offset[g2][2]))
-                trans_matrix = np.matmul(trans.rotate(theta),
-                                         trans_matrix)
-                grid = np.matmul(trans_matrix,
-                                 base_grid)
-                intersections[(g1, g2)] = grid.T
+        for g1, g2 in triangle_iterator(self.GROUPS):
+            # g1 corresponds to x
+            # g2 corresponds to y
+            iota = 2 * np.pi / 5 * (g2 - g1)
+            theta = 2 * np.pi / 5 * g1
+            trans_matrix = np.matmul(trans.skew_rot_y(iota),
+                                     trans.translate(self._base_offset[g1][2], self._base_offset[g2][2]))
+            trans_matrix = np.matmul(trans.rotate(theta),
+                                     trans_matrix)
+            grid = np.matmul(trans_matrix,
+                             base_grid)
+            intersections[(g1, g2)] = grid.T
+
         return base_grid, intersections
+
+    def calculate_intersections(self, index_range: Tuple[int, int]):
+        """
+        Computes all the intersections in a given section of the pentagrid.
+        Returns np.ndarray with shape [5, 5, index_range_size, index_range_size, 3].
+        The first two dimensions form a triangular matrix without diagonal.
+        :param index_range:
+        :return:
+        """
+        points = np.zeros([self.GROUPS,
+                           self.GROUPS,
+                           index_range[1] - index_range[0],
+                           index_range[1] - index_range[0],
+                           3])
+        base = np.array(np.meshgrid(np.arange(*index_range), np.arange(*index_range), [1])).T
+        for g1, g2 in triangle_iterator(self.GROUPS):
+            iota = 2 * np.pi / 5 * (g2 - g1)
+            theta = 2 * np.pi / 5 * g1
+            trans_matrix = np.matmul(trans.skew_rot_y(iota),
+                                     trans.translate(self._base_offset[g1][2], self._base_offset[g2][2]))
+            trans_matrix = np.matmul(trans.rotate(theta),
+                                     trans_matrix)
+            grid = np.matmul(trans_matrix,
+                             base.transpose([0, 1, 3, 2]))
+            points[g1, g2, :, :, :] = grid.transpose([0, 1, 3, 2])
+        return points
 
     def annotate_intersections(self, base_grid, intersections):
         for groups, points in intersections.items():
@@ -185,18 +216,20 @@ def test(theta=0):
 
 def plot_grid():
     grid = Pentagrid()
-    base_grid, ints = grid.calculate_intersections((-30, 30))
-    for key, val in ints.items():
-        if 0 in key or 1 in key:
-            if 0 in key and 1 in key:
+    points = grid.calculate_intersections((-20, 20))
+    for g1, g2 in triangle_iterator(grid.GROUPS):
+        if 0 in (g1, g2) or 1 in (g1, g2):
+            if 0 in (g1, g2) and 1 in (g1, g2):
                 # continue
                 color = "white"
             else:
+                # continue
                 color = "blue"
         else:
             # continue
             color = "red"
-        for x, y, z in val * 3:
+        for index in np.ndindex(points.shape[2:-1]):
+            x, y, z = points[(g1, g2, *index)] * 3
             draw.draw_point(x, y, color=color, size=6)
     draw.show()
 
