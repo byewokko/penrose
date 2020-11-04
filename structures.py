@@ -180,6 +180,9 @@ class FrozenSetDict:
     def keys(self):
         return self._d.keys()
 
+    def items(self):
+        return self._d.items()
+
 
 class TupleDict:
     def __init__(self, data=None):

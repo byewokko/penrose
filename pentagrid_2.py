@@ -60,6 +60,11 @@ class Pentagrid:
     def get_line(self, group: int, index: float):
         return self._base_lines[group] + self._base_offset[group] + [0, 0, index]
 
+    def get_line_group(self, group: int, index_range: Tuple[int, int]):
+        array = np.zeros([index_range[1] - index_range[0], 3])
+        array[:, -1] = np.arange(index_range[0], index_range[1])
+        return array + self._base_lines[group] + self._base_offset[group]
+
     def get_line_x(self, group: int, index: float, y: float):
         line = self.get_line(group, index)
         y = [0, -1, y]
@@ -77,6 +82,7 @@ class Pentagrid:
         return cross
 
     def calculate_intersections(self, index_range: Tuple[int, int]):
+        # TODO: use one big matrix of values + one matrix of indices
         intersections = FrozenSetDict()
         base_grid = np.array(
             np.meshgrid(np.arange(*index_range), np.arange(*index_range), [1])).T.reshape(-1, 3).T
@@ -93,7 +99,19 @@ class Pentagrid:
                 grid = np.matmul(trans_matrix,
                                  base_grid)
                 intersections[(g1, g2)] = grid.T
-        return intersections
+        return base_grid, intersections
+
+    def annotate_intersections(self, base_grid, intersections):
+        for groups, points in intersections.items():
+            for g in range(self.GROUPS):
+                if g in groups:
+                    # different indexing
+                    continue
+                # TODO need index_range here !
+                lines = self.get_line_group(g, index_range)
+                positions = np.matmul(lines, points.T) > 0
+                indices = np.sum(positions, axis=1)  # ?which axis
+                # store indices
 
     def calculate_grid_edges(self, index_range: Tuple[int, int]):
         """
@@ -165,16 +183,42 @@ def test(theta=0):
     return grid.T, grid_rot.T, grid_skewed.T
 
 
+def plot_grid():
+    grid = Pentagrid()
+    base_grid, ints = grid.calculate_intersections((-30, 30))
+    for key, val in ints.items():
+        if 0 in key or 1 in key:
+            if 0 in key and 1 in key:
+                # continue
+                color = "white"
+            else:
+                color = "blue"
+        else:
+            # continue
+            color = "red"
+        for x, y, z in val * 3:
+            draw.draw_point(x, y, color=color, size=6)
+    draw.show()
+
+
 def main():
     grid = Pentagrid()
-    ints = grid.calculate_intersections((-30, 30))
-    for val in ints.values():
+    base_grid, ints = grid.calculate_intersections((-100, 100))
+    for key, val in ints.items():
+        if 0 in key or 1 in key:
+            if 0 in key and 1 in key:
+                color = "white"
+            else:
+                color = "black"
+        else:
+            color = "red"
         for x, y, z in val * 3:
-            draw.draw_point(x, y, size=6)
+            draw.draw_point(x, y, color=color, size=6)
     draw.show()
 
 
 if __name__ == "__main__":
-    main()
+    # main()
     # test()
+    plot_grid()
     # draw_pentagrid()
