@@ -76,6 +76,25 @@ class Pentagrid:
             cross = cross[1]
         return cross
 
+    def calculate_intersections(self, index_range: Tuple[int, int]):
+        intersections = FrozenSetDict()
+        base_grid = np.array(
+            np.meshgrid(np.arange(*index_range), np.arange(*index_range), [1])).T.reshape(-1, 3).T
+        for g1 in range(self.GROUPS - 1):
+            for g2 in range(g1 + 1, self.GROUPS):
+                # g1 corresponds to x
+                # g2 corresponds to y
+                iota = 2 * np.pi / 5 * (g2 - g1)
+                theta = 2 * np.pi / 5 * g1
+                trans_matrix = np.matmul(trans.skew_rot_y(iota),
+                                         trans.translate(self._base_offset[g1][2], self._base_offset[g2][2]))
+                trans_matrix = np.matmul(trans.rotate(theta),
+                                         trans_matrix)
+                grid = np.matmul(trans_matrix,
+                                 base_grid)
+                intersections[(g1, g2)] = grid.T
+        return intersections
+
     def calculate_grid_edges(self, index_range: Tuple[int, int]):
         """
         For each line:
@@ -83,7 +102,7 @@ class Pentagrid:
         - put them in heapq cast as tuples (ndarray cannot __lt__)
         - generate edges
         """
-        for g1 in range(self.GROUPS-1):
+        for g1 in range(self.GROUPS - 1):
             for i1 in range(*index_range):
                 # print(g1, i1)
                 a = self.get_line(g1, i1)
@@ -131,28 +150,31 @@ def load_vertex_dict(filename):
     return vertex_dict
 
 
-def test():
-    grid = np.array(np.meshgrid(np.arange(5), np.arange(5), [1])).T.reshape(-1, 3) * 5
-    for x, y, z in grid:
+def test(theta=0):
+    grid = np.array(np.meshgrid(np.arange(10), np.arange(10), [1])).T.reshape(-1, 3).T * 3
+    for x, y, z in grid.T:
         draw.draw_point(x, y, "gray", 10)
-    skew_matrix = trans.skew(np.sin(2*np.pi/5 *3))
-    grid_skewed = np.matmul(skew_matrix, grid.T).T
-    for x, y, z in grid_skewed:
+    theta = 2 * np.pi / 5 * 2  # - np.pi / 2
+    grid_rot = np.matmul(trans.rotate(theta - np.pi / 2), grid)
+    for x, y, z in grid_rot.T:
+        draw.draw_point(x, y, "blue", 10)
+    grid_skewed = np.matmul(trans.skew_rot_y(theta), grid)
+    for x, y, z in grid_skewed.T:
         draw.draw_point(x, y, "red", 10)
     draw.show()
+    return grid.T, grid_rot.T, grid_skewed.T
 
 
 def main():
     grid = Pentagrid()
-    grid.calculate_grid_edges((-10, 10))
-    edges = [(grid.grid_nodes[n], grid.grid_nodes[m]) for n, m in grid.grid_edges]
-    for e in edges:
-        draw.draw_edge(*e)
-    draw.draw_points([(x, y) for x, y, c in grid.grid_nodes.values()], color="red")
+    ints = grid.calculate_intersections((-30, 30))
+    for val in ints.values():
+        for x, y, z in val * 3:
+            draw.draw_point(x, y, size=6)
     draw.show()
 
 
 if __name__ == "__main__":
-    # main()
-    test()
+    main()
+    # test()
     # draw_pentagrid()

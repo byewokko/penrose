@@ -2,8 +2,14 @@ import numpy as np
 
 
 def rotate(theta: float = 0):
-    return np.asarray([[np.cos(theta*2*np.pi), -np.sin(theta*2*np.pi), 0],
-                       [np.sin(theta*2*np.pi), np.cos(theta*2*np.pi), 0],
+    return np.asarray([[np.cos(theta), -np.sin(theta), 0],
+                       [np.sin(theta), np.cos(theta), 0],
+                       [0, 0, 1]])
+
+
+def skew_rot_y(theta: float = 0):
+    return np.asarray([[1, 0, 0],
+                       [-1/np.tan(theta), 1 / np.sin(theta), 0],
                        [0, 0, 1]])
 
 
@@ -13,7 +19,7 @@ def skew(skew_x: float = 0, skew_y: float = 0):
                        [0, 0, 1]])
 
 
-def scale(scale_x: float = 0, scale_y: float = 0):
+def scale(scale_x: float = 1, scale_y: float = 1):
     return np.asarray([[scale_x, 0, 0],
                        [0, scale_y, 0],
                        [0, 0, 1]])

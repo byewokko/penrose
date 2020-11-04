@@ -174,6 +174,12 @@ class FrozenSetDict:
                 d_new[k.difference(difset)] = v
         return FrozenSetDict(d_new)
 
+    def values(self):
+        return self._d.values()
+
+    def keys(self):
+        return self._d.keys()
+
 
 class TupleDict:
     def __init__(self, data=None):
