@@ -17,7 +17,7 @@ def _set_base_lines():
     lines = []
     for d in range(5):
         alpha = d * 2 * np.pi / 5
-        lines.append([np.sin(alpha), -np.cos(alpha), 0])
+        lines.append([np.cos(alpha), np.sin(alpha), 0])
     return np.asarray(lines)
 
 
@@ -63,28 +63,40 @@ class Pentagrid:
         self.grid_nodes: Dict[FrozenSet[Tuple[int, int]], np.ndarray] = {}
         self.grid_edges: Set[FrozenSet[FrozenSet[Tuple[int, int]]]] = set()
 
-    def get_line(self, group: int, index: float):
-        return self._base_lines[group] + self._base_offset[group] + [0, 0, index]
+    def get_group_offset(self, group: int):
+        return self._base_offset[group, -1]
+
+    def get_line(self, group: int, index: float = 0):
+        theta = 2*np.pi/5*group
+        distance = index + self.get_group_offset(group)
+        return np.matmul(trans.angular_translate(theta, distance), self._base_lines[group])
 
     def get_line_group(self, group: int, index_range: Tuple[int, int]):
         array = np.zeros([index_range[1] - index_range[0], 3])
         array[:, -1] = np.arange(index_range[0], index_range[1])
         return array + self._base_lines[group] + self._base_offset[group]
 
-    def get_line_x(self, group: int, index: float, y: float):
+    def _get_line_group(self, group: int, index_range: Tuple[int, int]):
+        # FIXME: BASE OFFSET IS BROKEN
+        t = np.stack([trans.angular_translate(2*np.pi/5*group, i) for i in range(*index_range)])
+        # line =
+        a = np.matmul(self.get_line(group), t)
+        return a
+
+    def get_line_x(self, group: int, index: float, y: float, scale: float = 1):
         line = self.get_line(group, index)
         y = [0, -1, y]
         cross = intersection(line, y)
         if cross is not None:
-            cross = cross[0]
+            cross = cross[0] * scale
         return cross
 
-    def get_line_y(self, group: int, index: float, x: float):
+    def get_line_y(self, group: int, index: float, x: float, scale: float = 1):
         line = self.get_line(group, index)
         x = [-1, 0, x]
         cross = intersection(line, x)
         if cross is not None:
-            cross = cross[1]
+            cross = cross[1] * scale
         return cross
 
     def calculate_intersections_as_dict(self, index_range: Tuple[int, int]):
@@ -96,7 +108,7 @@ class Pentagrid:
             # g2 corresponds to y
             iota = 2 * np.pi / 5 * (g2 - g1)
             theta = 2 * np.pi / 5 * g1
-            trans_matrix = np.matmul(trans.skew_rot_y(iota),
+            trans_matrix = np.matmul(trans.angular_skew_y(iota),
                                      trans.translate(self._base_offset[g1][2], self._base_offset[g2][2]))
             trans_matrix = np.matmul(trans.rotate(theta),
                                      trans_matrix)
@@ -123,7 +135,7 @@ class Pentagrid:
         for g1, g2 in triangle_iterator(self.GROUPS):
             iota = 2 * np.pi / 5 * (g2 - g1)
             theta = 2 * np.pi / 5 * g1
-            trans_matrix = np.matmul(trans.skew_rot_y(iota),
+            trans_matrix = np.matmul(trans.angular_skew_y(iota),
                                      trans.translate(self._base_offset[g1][2], self._base_offset[g2][2]))
             trans_matrix = np.matmul(trans.rotate(theta),
                                      trans_matrix)
@@ -132,17 +144,13 @@ class Pentagrid:
             points[g1, g2, :, :, :] = grid.transpose([0, 1, 3, 2])
         return points
 
-    def annotate_intersections(self, base_grid, intersections):
-        for groups, points in intersections.items():
-            for g in range(self.GROUPS):
-                if g in groups:
-                    # different indexing
-                    continue
-                # TODO need index_range here !
-                lines = self.get_line_group(g, index_range)
-                positions = np.matmul(lines, points.T) > 0
-                indices = np.sum(positions, axis=1)  # ?which axis
-                # store indices
+    def annotate_intersections(self, points: np.ndarray, index_range: Tuple[int, int]):
+        newshape = list(points.shape)
+        newshape[-1] = 5
+        coordinates = np.zeros(newshape)
+        for g in range(self.GROUPS):
+            lines = self.get_line_group(g, index_range)
+            coordinates[..., g] = np.sum(np.matmul(points, lines.T) > 0, axis=-1, dtype=int)
 
     def calculate_grid_edges(self, index_range: Tuple[int, int]):
         """
@@ -201,23 +209,17 @@ def load_vertex_dict(filename):
     return vertex_dict
 
 
-def test(theta=0):
-    grid = np.array(np.meshgrid(np.arange(10), np.arange(10), [1])).T.reshape(-1, 3).T * 3
-    for x, y, z in grid.T:
-        draw.draw_point(x, y, "gray", 10)
-    theta = 2 * np.pi / 5 * 2  # - np.pi / 2
-    grid_rot = np.matmul(trans.rotate(theta - np.pi / 2), grid)
-    for x, y, z in grid_rot.T:
-        draw.draw_point(x, y, "blue", 10)
-    grid_skewed = np.matmul(trans.skew_rot_y(theta), grid)
-    for x, y, z in grid_skewed.T:
-        draw.draw_point(x, y, "red", 10)
-    draw.show()
-    return grid.T, grid_rot.T, grid_skewed.T
-
-
-def plot_intersections(i1: int, i2: int, scale: float = 1):
+def test():
     grid = Pentagrid()
+    plot_grid(-3, 3, -300, 200, 300, -200, scale=6, grid=grid)
+    plot_intersections(-3, 3, scale=6, grid=grid)
+
+
+def plot_intersections(i1: int, i2: int,
+                       scale: float = 1,
+                       grid: Optional[Pentagrid] = None):
+    if not grid:
+        grid = Pentagrid()
     points = grid.calculate_intersections((i1, i2))
     for g1, g2 in triangle_iterator(grid.GROUPS):
         if 0 in (g1, g2) or 1 in (g1, g2):
@@ -236,46 +238,57 @@ def plot_intersections(i1: int, i2: int, scale: float = 1):
     draw.show()
 
 
-def plot_grid(i1: int, i2: int, x1: float, y1: float, x2: float, y2: float, scale: float = 1):
+def plot_grid(i1: int, i2: int,
+              x1: float, y1: float,
+              x2: float, y2: float,
+              scale: float = 1,
+              grid: Optional[Pentagrid] = None):
     # TODO: use matmul instead
-    grid = Pentagrid()
+    if not grid:
+        grid = Pentagrid()
+    top = np.asarray([0, -1, y1])
+    bottom = np.asarray([0, -1, y2])
+    left = np.asarray([1, 0, x1])
+    right = np.asarray([1, 0, x2])
     for g in range(grid.GROUPS):
+        lines = grid._get_line_group(g, (i1, i2))
+        pts_top = np.cross(lines, top)
+        pts_bottom = np.cross(lines, bottom)
+        pts_left = np.cross(lines, left)
+        pts_right = np.cross(lines, right)
+        pts_top /= pts_top[:, [-1]]
+        pts_bottom /= pts_bottom[:, [-1]]
+        pts_left /= pts_left[:, [-1]]
+        pts_right /= pts_right[:, [-1]]
         for i in range(i1, i2):
-            i *= scale
-            lx1 = grid.get_line_x(g, i, y2)
-            if lx1 is None:
-                lx1 = x1
-            lx2 = grid.get_line_x(g, i, y1)
-            if lx2 is None:
-                lx2 = x2
-            # if x1 > x2:
-            #     x1, x2 = x2, x1
-            lx1, lx2 = max([lx1, x1]), min([lx2, x2])
-            ly1 = grid.get_line_y(g, i, lx1)
-            ly2 = grid.get_line_y(g, i, lx2)
-            draw.draw_line(lx1, ly1, lx2, ly2, color="white", width=3)
+            lx1, ly1, lz1 = pts_top[i] * scale
+            if np.isnan(lz1) or lx1 < x1:
+                lx1, ly1, lz1 = pts_left[i] * scale
+            elif lx1 > x2:
+                lx1, ly1, lz1 = pts_right[i] * scale
+
+            lx2, ly2, lz2 = pts_bottom[i] * scale
+            if np.isnan(lz2) or lx2 > x2:
+                lx2, ly2, lz2 = pts_right[i] * scale
+            elif lx2 < x1:
+                lx2, ly2, lz2 = pts_left[i] * scale
+
+            draw.draw_line(lx1, -ly1, lx2, -ly2, color="white", width=3)
+        # break
     draw.show()
 
 
 def main():
+    index_range = (-10, 10)
     grid = Pentagrid()
-    base_grid, ints = grid.calculate_intersections((-100, 100))
-    for key, val in ints.items():
-        if 0 in key or 1 in key:
-            if 0 in key and 1 in key:
-                color = "white"
-            else:
-                color = "black"
-        else:
-            color = "red"
-        for x, y, z in val * 3:
-            draw.draw_point(x, y, color=color, size=6)
-    draw.show()
+    points = grid.calculate_intersections(index_range)
+    grid.annotate_intersections(points, index_range)
+
 
 
 if __name__ == "__main__":
     # main()
-    # test()
-    plot_intersections(-100, 100, scale=3)
+    test()
+    # plot_intersections(-100, 100, scale=3)
     # plot_grid(-20, 20, -300, 200, 300, -200, scale=3)
     # draw_pentagrid()

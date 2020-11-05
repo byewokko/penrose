@@ -7,7 +7,7 @@ def rotate(theta: float = 0):
                        [0, 0, 1]])
 
 
-def skew_rot_y(theta: float = 0):
+def angular_skew_y(theta: float = 0):
     return np.asarray([[1, 0, 0],
                        [-1/np.tan(theta), 1 / np.sin(theta), 0],
                        [0, 0, 1]])
@@ -28,4 +28,10 @@ def scale(scale_x: float = 1, scale_y: float = 1):
 def translate(dx: float = 0, dy: float = 0):
     return np.asarray([[1, 0, dx],
                        [0, 1, dy],
+                       [0, 0, 1]])
+
+
+def angular_translate(theta: float = 0, d: float = 0):
+    return np.asarray([[1, 0, d * np.cos(theta)],
+                       [0, 1, d * np.sin(theta)],
                        [0, 0, 1]])
