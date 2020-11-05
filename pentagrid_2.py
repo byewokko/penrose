@@ -183,12 +183,14 @@ class Pentagrid:
 
 
 def save_vertex_dict(vertex_dict, filename):
+    raise NotImplementedError
     with open(filename, "w") as f:
         for node, xyz in vertex_dict.items():
             print(",".join(map(str, node)), ",".join(map(str, xyz)), sep=";", file=f)
 
 
 def load_vertex_dict(filename):
+    raise NotImplementedError
     vertex_dict = {}
     with open(filename, "r") as f:
         for line in f:
@@ -214,9 +216,9 @@ def test(theta=0):
     return grid.T, grid_rot.T, grid_skewed.T
 
 
-def plot_grid():
+def plot_intersections(i1: int, i2: int, scale: float = 1):
     grid = Pentagrid()
-    points = grid.calculate_intersections((-20, 20))
+    points = grid.calculate_intersections((i1, i2))
     for g1, g2 in triangle_iterator(grid.GROUPS):
         if 0 in (g1, g2) or 1 in (g1, g2):
             if 0 in (g1, g2) and 1 in (g1, g2):
@@ -229,8 +231,29 @@ def plot_grid():
             # continue
             color = "red"
         for index in np.ndindex(points.shape[2:-1]):
-            x, y, z = points[(g1, g2, *index)] * 3
+            x, y, z = points[(g1, g2, *index)] * scale
             draw.draw_point(x, y, color=color, size=6)
+    draw.show()
+
+
+def plot_grid(i1: int, i2: int, x1: float, y1: float, x2: float, y2: float, scale: float = 1):
+    # TODO: use matmul instead
+    grid = Pentagrid()
+    for g in range(grid.GROUPS):
+        for i in range(i1, i2):
+            i *= scale
+            lx1 = grid.get_line_x(g, i, y2)
+            if lx1 is None:
+                lx1 = x1
+            lx2 = grid.get_line_x(g, i, y1)
+            if lx2 is None:
+                lx2 = x2
+            # if x1 > x2:
+            #     x1, x2 = x2, x1
+            lx1, lx2 = max([lx1, x1]), min([lx2, x2])
+            ly1 = grid.get_line_y(g, i, lx1)
+            ly2 = grid.get_line_y(g, i, lx2)
+            draw.draw_line(lx1, ly1, lx2, ly2, color="white", width=3)
     draw.show()
 
 
@@ -253,5 +276,6 @@ def main():
 if __name__ == "__main__":
     # main()
     # test()
-    plot_grid()
+    plot_intersections(-100, 100, scale=3)
+    # plot_grid(-20, 20, -300, 200, 300, -200, scale=3)
     # draw_pentagrid()
