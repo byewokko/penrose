@@ -1,10 +1,9 @@
-import math
 from typing import Iterable, Optional, Tuple, Union, Sequence
 import numpy as np
 
 from PIL import Image, ImageDraw
 
-import transformations as trans
+from utils import transformations as trans
 
 WIDTH, HEIGHT = 1280, 1024
 SCALE = 20

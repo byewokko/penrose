@@ -1,5 +1,5 @@
 from p5 import *
-import compose
+from compose import compose
 
 counter = 0
 edge_length = 50

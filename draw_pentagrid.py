@@ -1,6 +1,6 @@
 from p5 import *
 
-from pentagrid import Pentagrid
+from pentagrid_old import Pentagrid
 
 scaling = 50
 edges = []

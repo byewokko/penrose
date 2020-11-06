@@ -8,6 +8,13 @@ from sys import getsizeof, stderr
 import numpy as np
 
 
+"""
+Benchmarking of different n-dimensional dict implementations.
+
+Guess I'm not using any of them after all.
+"""
+
+
 def total_size(o, handlers={}, verbose=False):
     """
     Returns the approximate memory footprint an object and all of its contents.

@@ -7,6 +7,13 @@ from typing import Optional, Union, Tuple, List, Sequence, Deque
 from collections import OrderedDict, deque
 import numpy as np
 
+
+"""
+My first attempt to generate Penrose-like tiling. 
+The implementation doesn't consider different edge types and ends up producing irregular star-like patterns.
+"""
+
+
 INVERT_Y = True
 
 step = np.asarray([

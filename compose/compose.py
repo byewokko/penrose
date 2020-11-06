@@ -3,23 +3,22 @@ from __future__ import annotations
 import heapq
 import random
 import sys
-from typing import Optional, Union, Tuple, List, Sequence, Deque, Any, Literal
-from collections import OrderedDict, deque
+from typing import Optional, Union, Tuple, List, Sequence, Any, Literal
 import numpy as np
 
-import tiling
-
+from naive import tiling
 
 """
 An attempt to create Penrose tiling with bottom up approach. The rhomb tiles are generated randomly, 
-obeying only local rules. It doesn't work, as shown in the linked articles.
+obeying only local rules. It doesn't work, because local approach cannot work, as shown in the linked articles.
 
 Plus, my implementation is buggy.
+
+But I might use it with the pentagrid oracle later.
 """
 
 
 #debug
-from pil_draw_tiling import draw_edge, draw_edges, draw_node, draw_nodes, draw_edge_arrow, show, clear
 
 INVERT_Y = True
 

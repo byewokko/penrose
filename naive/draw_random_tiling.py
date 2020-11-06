@@ -1,5 +1,5 @@
 from p5 import *
-import tiling
+from naive import tiling
 
 steps = 100
 edge_length = 50
