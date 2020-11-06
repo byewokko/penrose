@@ -7,9 +7,9 @@ from PIL import Image, ImageDraw
 import transformations as trans
 
 WIDTH, HEIGHT = 1280, 1024
-SCALE = 50
-POINT_SIZE = 5
-LINE_WEIGHT = 2
+SCALE = 20
+POINT_SIZE = 3
+LINE_WEIGHT = 1
 POINT_COLOR = "red"
 LINE_COLOR = "grey"
 FILL_COLOR = "pink"
@@ -20,14 +20,19 @@ draw = ImageDraw.Draw(img)
 
 
 class Draw:
-    def __init__(self, width: int = WIDTH, height: int = HEIGHT, scale: int = SCALE):
+    def __init__(self,
+                 width: int = WIDTH,
+                 height: int = HEIGHT,
+                 scale: int = SCALE,
+                 point_size: int = POINT_SIZE,
+                 line_weight: int = LINE_WEIGHT):
         self._img = Image.new("RGB", (width, height))
         self._draw = ImageDraw.Draw(self._img)
         self.width = width
         self.height = height
         self.scale = scale
-        self.point_size = POINT_SIZE
-        self.line_weight = LINE_WEIGHT
+        self.point_size = point_size
+        self.line_weight = line_weight
         self.point_color = POINT_COLOR
         self.line_color = LINE_COLOR
         self.fill_color = FILL_COLOR
@@ -48,29 +53,26 @@ class Draw:
     def normalize_matrix(self, array: np.ndarray):
         t = np.matmul(trans.translate(self.width / 2, self.height / 2), trans.scale(self.scale, -self.scale))
         array = np.matmul(array, t.T)
-        print(array)
-        return array / array[..., [-1]]
+        return array / array[:, [-1]]
 
     def draw_line(self,
                   *args: Union[float, Tuple[float, float]],
+                  normalize: bool = True,
                   color: Optional[str] = None,
                   width: Optional[int] = None):
+
         if len(args) == 4:
-            x1, y1, x2, y2 = self.normalize(*args)
+            if normalize:
+                x1, y1, x2, y2 = self.normalize(*args)
+            else:
+                x1, y1, x2, y2 = args
         elif len(args) == 2:
-            x1, y1, x2, y2 = self.normalize(*args[0], *args[1])
+            if normalize:
+                x1, y1, x2, y2 = self.normalize(*args[0], *args[1])
+            else:
+                (x1, y1), (x2, y2) = args
         else:
             raise TypeError("The input must be 4 floats or 2 tuples of 2 floats.")
-        self._draw.line([x1, y1, x2, y2],
-                        width=width or self.line_weight,
-                        fill=color or self.line_color)
-
-    def draw_norm_line(self,
-                       coords: Union[Sequence[float], np.ndarray],
-                       color: Optional[str] = None,
-                       width: Optional[int] = None):
-        assert len(coords) == 3
-        raise NotImplementedError
         self._draw.line([x1, y1, x2, y2],
                         width=width or self.line_weight,
                         fill=color or self.line_color)
@@ -129,6 +131,45 @@ class Draw:
         for point in points:
             self.draw_point(*point, color=color)
 
+    def box(self, side: str):
+        if side == "left":
+            return np.asarray([1, 0, self.width / 2])
+        elif side == "right":
+            return np.asarray([1, 0, -self.width / 2])
+        elif side == "top":
+            return np.asarray([0, 1, -self.height / 2])
+        elif side == "bottom":
+            return np.asarray([0, 1, self.height / 2])
+
+    def draw_norm_line(self,
+                       line: np.ndarray,
+                       *args, **kwargs
+                       ):
+        assert len(line) == 3
+        a = np.cross(line, self.box("top"))
+        b = np.cross(line, self.box("bottom"))
+        if a[-1] == 0 or b[-1] == 0:
+            a = np.cross(line, self.box("left"))
+            b = np.cross(line, self.box("right"))
+        a /= a[-1]
+        b /= b[-1]
+        a, b = self.normalize_matrix(np.asarray([a, b]))
+        self.draw_line(a[:2], b[:2], normalize=False, **kwargs)
+
+    def draw_norm_lines(self,
+                        lines: np.ndarray,
+                        *args, **kwargs
+                        ):
+        assert len(lines[0]) == 3
+        a = np.cross(lines, self.box("top"))
+        b = np.cross(lines, self.box("bottom"))
+        if a[-1] == 0 or b[-1] == 0:
+            a = np.cross(lines, self.box("left"))
+            b = np.cross(lines, self.box("right"))
+        a /= a[-1]
+        b /= b[-1]
+        self.draw_line(a[:2], b[:2], normalize=True, **kwargs)
+
     def show(self):
         self._img.show()
 
@@ -140,14 +181,16 @@ def main():
     d = Draw()
     d.scale = 50
     d.draw_point(0, 0)
-    d.draw_line(0, 5, 0, -2)
+    d.draw_line(-1, 2, 1, -2)
     arr = np.asarray(
-        [[1,1,1],
-         [-2,-4,2],
-         [0,5,-1],
-         [1,1,-1]]
+        [[1, 1, 1],
+         [2, 2, 1],
+         [1, 1, -1],
+         [1, -1, -1],
+         [1, -1, 1]]
     )
     d.draw_point_array(arr, color="blue")
+    d.draw_norm_line(np.asarray([1, 1, 0]))
     d.show()
 
 
