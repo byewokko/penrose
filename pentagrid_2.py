@@ -16,8 +16,8 @@ from structures import FrozenSetDict
 def _set_base_lines():
     lines = []
     for d in range(5):
-        alpha = d * 2 * np.pi / 5
-        lines.append([np.cos(alpha), np.sin(alpha), 0])
+        theta = d * 2 * np.pi / 5
+        lines.append([np.cos(theta), np.sin(theta), 0])
     return np.asarray(lines)
 
 
@@ -59,7 +59,6 @@ class Pentagrid:
     def __init__(self):
         self._base_offset = np.asarray([[0, 0, np.sqrt(np.random.random() + 1) - 1] for _ in range(self.GROUPS)])
         self._base_lines = _set_base_lines()
-        self._base_intersections = _set_intersections(self._base_lines + self._base_offset)
         self.grid_nodes: Dict[FrozenSet[Tuple[int, int]], np.ndarray] = {}
         self.grid_edges: Set[FrozenSet[FrozenSet[Tuple[int, int]]]] = set()
 
@@ -123,8 +122,6 @@ class Pentagrid:
         Computes all the intersections in a given section of the pentagrid.
         Returns np.ndarray with shape [5, 5, index_range_size, index_range_size, 3].
         The first two dimensions form a triangular matrix without diagonal.
-        :param index_range:
-        :return:
         """
         points = np.zeros([self.GROUPS,
                            self.GROUPS,
