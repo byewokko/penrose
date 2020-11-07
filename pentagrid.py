@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Union, Tuple
+import heapq
+from typing import Union, Tuple, Dict
 import numpy as np
 
 from utils import transformations as trans
@@ -90,7 +91,7 @@ class Pentagrid:
     def annotate_intersections(self, intersections: np.ndarray, index_range: Tuple[int, int]):
         """
         Returns ndarray of penta-coordinates of all the intersections.
-        UPDATE: the coordinates are not unique. som neighboring points share coords
+        UPDATE!! the coordinates are not unique. some neighboring points share coords
         """
         newshape = list(intersections.shape)
         newshape[-1] = 5
@@ -109,6 +110,35 @@ class Pentagrid:
             np.any(coordinates[:,:,:,:] <= np.nanmin(coordinates), axis=-1))
         coordinates[indices] = np.nan
         return coordinates
+
+
+def generate_edges(xy_points: np.ndarray):
+    edges: Dict[tuple, set] = {}
+    shape = xy_points.shape
+    for g1 in range(shape[0]):
+        for i1 in range(shape[2]):
+            h = []
+            for g2 in range(shape[1]):
+                if g1 == g2:
+                    continue
+                if g1 < g2:
+                    a, b = g1, g2
+                else:
+                    a, b = g2, g1
+                for i2 in range(shape[3]):
+                    heapq.heappush(h, (tuple(xy_points[a, b, i1, i2]), (a, b, i1, i2)))
+            _, n2 = heapq.heappop(h)
+            if n2 not in edges.keys():
+                edges[n2] = set()
+            while h:
+                _, n1 = heapq.heappop(h)
+                if n1 not in edges.keys():
+                    edges[n1] = set()
+                edges[n1].add(n2)
+                edges[n2].add(n1)
+                n2 = n1
+    # FIXME: doesn't work properly, ignores some edges
+    return edges
 
 
 def plot_intersections(grid: Pentagrid,
@@ -150,29 +180,6 @@ def test():
     draw.show()
 
 
-def coords_lookup_dict(penta_points: np.ndarray):
-    """
-    Produces penta_coord -> rhomb_type mapping
-    """
-    GROUPS = 5
-    lookup = {}
-    all = 0
-    double = 0
-    shape = penta_points.shape
-    for g1, g2 in triangle_iterator(GROUPS):
-        for i1, i2 in np.ndindex(shape[2:-1]):
-            if np.nan in penta_points[g1, g2, i1, i2]:
-                continue
-            all += 1
-            k = tuple(penta_points[g1, g2, i1, i2])
-            if k in lookup.keys():
-                double += 1
-                # print(k, lookup[k], "->", (g1, g2))
-            lookup[k] = g1, g2
-    print(double, len(lookup))
-    return lookup
-
-
 def find_duplicates(penta_points):
     first = {}
     second = {}
@@ -199,13 +206,12 @@ def find_duplicates(penta_points):
     return first, second, third, fourth, fifth
 
 
-def main():
+def show_duplicates():
     index_range = (-4, 4)
     grid = Pentagrid()
     draw = Draw(scale=80)
     xy_points = grid.calculate_intersections(index_range)
     penta_points = grid.annotate_intersections(xy_points, index_range)
-    lookup = coords_lookup_dict(penta_points)
     plot_grid(grid, draw, -4, 4)
     first, second, third, fourth, fifth = find_duplicates(penta_points)
     keys = []
@@ -234,7 +240,30 @@ def main():
     draw.show()
 
 
+def main():
+    index_range = (-2, 2)
+    grid = Pentagrid()
+    draw = Draw(scale=80)
+    xy_points = grid.calculate_intersections(index_range)
+    edges = generate_edges(xy_points)
+    ln = {i: 0 for i in range(6)}
+    for e in edges.values():
+        ln[len(e)] += 1
+    print(ln)
+    plot_grid(grid, draw, *index_range)
+    for k, v in edges.items():
+        if len(v) == 2:
+            draw.norm_point(xy_points[k])
+    for k, v in edges.items():
+        if len(v) == 3:
+            draw.norm_point(xy_points[k], color="green")
+    # plot_intersections(grid, draw, *index_range)
+    draw.show()
+    return
+
+
 if __name__ == "__main__":
+    # show_duplicates()
     main()
     # test()
     # plot_intersections(Pentagrid(), Draw(scale=30), -100, 100)
