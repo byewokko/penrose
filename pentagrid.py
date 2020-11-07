@@ -90,8 +90,7 @@ class Pentagrid:
     def annotate_intersections(self, intersections: np.ndarray, index_range: Tuple[int, int]):
         """
         Returns ndarray of penta-coordinates of all the intersections.
-        This method is optimized for processing the 5D array of pentagrid intersections
-        and doesn't work for arbitrary points.
+        UPDATE: the coordinates are not unique. som neighboring points share coords
         """
         newshape = list(intersections.shape)
         newshape[-1] = 5
@@ -106,6 +105,9 @@ class Pentagrid:
             coordinates[g1, g2, :, :, (g2, g1)] = mesh
         for g1, g2 in inverse_triangle_iterator(self.GROUPS):
             coordinates[g1, g2].fill(np.nan)
+        indices = np.where(np.any(coordinates[:,:,:,:] >= np.nanmax(coordinates), axis=-1) |
+            np.any(coordinates[:,:,:,:] <= np.nanmin(coordinates), axis=-1))
+        coordinates[indices] = np.nan
         return coordinates
 
 
@@ -148,18 +150,87 @@ def test():
     draw.show()
 
 
+def coords_lookup_dict(penta_points: np.ndarray):
+    """
+    Produces penta_coord -> rhomb_type mapping
+    """
+    GROUPS = 5
+    lookup = {}
+    all = 0
+    double = 0
+    shape = penta_points.shape
+    for g1, g2 in triangle_iterator(GROUPS):
+        for i1, i2 in np.ndindex(shape[2:-1]):
+            if np.nan in penta_points[g1, g2, i1, i2]:
+                continue
+            all += 1
+            k = tuple(penta_points[g1, g2, i1, i2])
+            if k in lookup.keys():
+                double += 1
+                # print(k, lookup[k], "->", (g1, g2))
+            lookup[k] = g1, g2
+    print(double, len(lookup))
+    return lookup
+
+
+def find_duplicates(penta_points):
+    first = {}
+    second = {}
+    third = {}
+    fourth = {}
+    fifth = {}
+    shape = penta_points.shape
+    for g1, g2 in triangle_iterator(5):
+        for i1, i2 in np.ndindex(shape[2:-1]):
+            k = tuple(penta_points[g1, g2, i1, i2])
+            v = (g1, g2, i1, i2)
+            if k in fifth:
+                print(k)
+            elif k in fourth:
+                fifth[k] = v
+            elif k in third:
+                fourth[k] = v
+            elif k in second:
+                third[k] = v
+            elif k in first:
+                second[k] = v
+            else:
+                first[k] = v
+    return first, second, third, fourth, fifth
+
+
 def main():
     index_range = (-4, 4)
     grid = Pentagrid()
     draw = Draw(scale=80)
     xy_points = grid.calculate_intersections(index_range)
     penta_points = grid.annotate_intersections(xy_points, index_range)
-    xy_points = xy_points.reshape([-1, 3])
-    penta_points = penta_points.reshape([-1, 5])
-    plot_grid(grid, draw, -10, 10)
-    indices = np.where(penta_points[:, 1] == 0)
-    strip = np.squeeze(xy_points[indices, :])
-    draw.point_array(strip)
+    lookup = coords_lookup_dict(penta_points)
+    plot_grid(grid, draw, -4, 4)
+    first, second, third, fourth, fifth = find_duplicates(penta_points)
+    keys = []
+    for k in fifth.keys():
+        print(k)
+        keys.append(k)
+        if len(keys) > 2:
+            break
+    first_array = xy_points[tuple(zip(*[first[k] for k in keys]))]
+    second_array = xy_points[tuple(zip(*[second[k] for k in keys]))]
+    third_array = xy_points[tuple(zip(*[third[k] for k in keys]))]
+    fourth_array = xy_points[tuple(zip(*[fourth[k] for k in keys]))]
+    fifth_array = xy_points[tuple(zip(*[fifth[k] for k in keys]))]
+    # first_array = xy_points[tuple(zip(*first.keys()))]
+    # second_array = xy_points[tuple(zip(*second.keys()))]
+    draw.point_array(first_array, color="blue")
+    draw.point_array(second_array, color="green")
+    draw.point_array(third_array, color="yellow")
+    draw.point_array(fourth_array, color="red")
+    draw.point_array(fifth_array, color="orange")
+    # xy_points = xy_points.reshape([-1, 3])
+    # penta_points = penta_points.reshape([-1, 5])
+    # indices = np.where(penta_points[:, 2] == 2)
+    # strip = np.squeeze(xy_points[indices, :])
+    # draw.point_array(strip)
     draw.show()
 
 

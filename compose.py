@@ -18,11 +18,6 @@ But I might use it with the pentagrid oracle later.
 """
 
 
-#debug
-
-INVERT_Y = True
-
-
 def round_up(val: int, base: int = 2):
     return (val + base - 1) // base * base
 
@@ -104,8 +99,6 @@ class RhombNode(tiling.Node4D):
     def get_xy(self, edge_length: float):
         x = edge_length * (self._p[0] + np.sqrt(5) * self._p[1]) / 4
         y = edge_length * (np.sin(np.pi / 5) * self._p[2] + np.sin(np.pi * 2 / 5) * self._p[3])
-        if INVERT_Y:
-            y = -y
         return x, y
 
     def is_angle_free(self, direction: int, angle: int, orientation: int):
