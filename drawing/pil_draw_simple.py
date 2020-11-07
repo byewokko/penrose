@@ -54,11 +54,34 @@ class Draw:
         array = np.matmul(array, t.T)
         return array / array[:, [-1]]
 
-    def draw_edge(self,
-                  *args: Union[float, Tuple[float, float]],
-                  normalize: bool = True,
-                  color: Optional[str] = None,
-                  width: Optional[int] = None):
+    def point(self,
+              x: float, y: float,
+              normalize: bool = True,
+              color: Optional[str] = None,
+              size: Optional[int] = None):
+        size = size or self.point_size
+        if normalize:
+            x, y = self.normalize(x, y)
+        self._draw.ellipse([x - size, y - size, x + size, y + size],
+                           fill=color or self.point_color,
+                           outline=None)
+
+    def points(self, points: Iterable, color: str = "red"):
+        for point in points:
+            self.point(*point, color=color)
+
+    def point_array(self,
+                    points: np.ndarray,
+                    *args, **kwargs):
+        points = self.normalize_matrix(points)
+        for x, y, z in points:
+            self.point(x, y, *args, normalize=False, **kwargs)
+
+    def edge(self,
+             *args: Union[float, Tuple[float, float]],
+             normalize: bool = True,
+             color: Optional[str] = None,
+             width: Optional[int] = None):
 
         if len(args) == 4:
             if normalize:
@@ -76,43 +99,20 @@ class Draw:
                         width=width or self.line_weight,
                         fill=color or self.line_color)
 
-    def draw_edges(self,
-                   lines: Iterable,
-                   color: Optional[str] = None,
-                   width: Optional[int] = None):
+    def edges(self,
+              lines: Iterable,
+              color: Optional[str] = None,
+              width: Optional[int] = None):
         for line in lines:
-            self.draw_edge(*line, color=color, width=width)
+            self.edge(*line, color=color, width=width)
 
-    def draw_norm_point(self,
-                        coords: Union[Sequence[float], np.ndarray],
-                        *args, **kwargs):
+    def norm_point(self,
+                   coords: Union[Sequence[float], np.ndarray],
+                   *args, **kwargs):
         x, y, *_ = coords / coords[-1]
-        self.draw_point(x, y, *args, **kwargs)
+        self.point(x, y, *args, **kwargs)
 
-    def draw_point_array(self,
-                         points: np.ndarray,
-                         *args, **kwargs):
-        points = self.normalize_matrix(points)
-        for x, y, z in points:
-            self.draw_point(x, y, *args, normalize=False, **kwargs)
-
-    def draw_point(self,
-                   x: float, y: float,
-                   normalize: bool = True,
-                   color: Optional[str] = None,
-                   size: Optional[int] = None):
-        size = size or self.point_size
-        if normalize:
-            x, y = self.normalize(x, y)
-        self._draw.ellipse([x - size, y - size, x + size, y + size],
-                           fill=color or self.point_color,
-                           outline=None)
-
-    def draw_points(self, points: Iterable, color: str = "red"):
-        for point in points:
-            self.draw_point(*point, color=color)
-
-    def box(self, side: str):
+    def border(self, side: str):
         if side == "left":
             return np.asarray([1, 0, self.width / 2])
         elif side == "right":
@@ -122,35 +122,38 @@ class Draw:
         elif side == "bottom":
             return np.asarray([0, 1, self.height / 2])
 
-    def draw_norm_line(self,
-                       line: np.ndarray,
-                       *args, **kwargs
-                       ):
+    def norm_line(self,
+                  line: np.ndarray,
+                  *args, **kwargs
+                  ):
+        """
+        Calculates the two intersections with canvas borders and plots the line segment they define.
+        """
         assert len(line) == 3
-        a = np.cross(line, self.box("top"))
-        b = np.cross(line, self.box("bottom"))
+        a = np.cross(line, self.border("top"))
+        b = np.cross(line, self.border("bottom"))
         if a[-1] == 0 or b[-1] == 0:
-            a = np.cross(line, self.box("left"))
-            b = np.cross(line, self.box("right"))
+            a = np.cross(line, self.border("left"))
+            b = np.cross(line, self.border("right"))
         a /= a[-1]
         b /= b[-1]
         a, b = self.normalize_matrix(np.asarray([a, b]))
-        self.draw_edge(a[:2], b[:2], normalize=False, **kwargs)
+        self.edge(a[:2], b[:2], normalize=False, **kwargs)
 
-    def draw_norm_lines(self,
-                        lines: np.ndarray,
-                        *args, **kwargs
-                        ):
+    def norm_lines(self,
+                   lines: np.ndarray,
+                   *args, **kwargs
+                   ):
         assert len(lines[0]) == 3
         raise NotImplementedError
-        a = np.cross(lines, self.box("top"))
-        b = np.cross(lines, self.box("bottom"))
+        a = np.cross(lines, self.border("top"))
+        b = np.cross(lines, self.border("bottom"))
         if a[-1] == 0 or b[-1] == 0:
-            a = np.cross(lines, self.box("left"))
-            b = np.cross(lines, self.box("right"))
+            a = np.cross(lines, self.border("left"))
+            b = np.cross(lines, self.border("right"))
         a /= a[-1]
         b /= b[-1]
-        self.draw_edge(a[:2], b[:2], normalize=True, **kwargs)
+        self.edge(a[:2], b[:2], normalize=True, **kwargs)
 
     def show(self):
         self._img.show()
@@ -162,8 +165,8 @@ class Draw:
 def main():
     d = Draw()
     d.scale = 50
-    d.draw_point(0, 0)
-    d.draw_edge(-1, 2, 1, -2)
+    d.point(0, 0)
+    d.edge(-1, 2, 1, -2)
     arr = np.asarray(
         [[1, 1, 1],
          [2, 2, 1],
@@ -171,8 +174,8 @@ def main():
          [1, -1, -1],
          [1, -1, 1]]
     )
-    d.draw_point_array(arr, color="blue")
-    d.draw_norm_line(np.asarray([1, 1, 0]))
+    d.point_array(arr, color="blue")
+    d.norm_line(np.asarray([1, 1, 0]))
     d.show()
 
 

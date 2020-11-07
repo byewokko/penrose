@@ -29,6 +29,12 @@ def triangle_iterator(n: int):
             yield i, j
 
 
+def inverse_triangle_iterator(n: int):
+    for i in range(n - 1):
+        for j in range(i, n):
+            yield j, i
+
+
 class Pentagrid:
     """
     Five families of equidistant parallel lines.
@@ -67,6 +73,7 @@ class Pentagrid:
                            index_range[1] - index_range[0],
                            index_range[1] - index_range[0],
                            3])
+        points.fill(np.nan)
         base = np.array(np.meshgrid(np.arange(*index_range), np.arange(*index_range), [1])).T
         for g1, g2 in triangle_iterator(self.GROUPS):
             iota = 2 * np.pi / 5 * (g2 - g1)
@@ -80,28 +87,26 @@ class Pentagrid:
             points[g1, g2, :, :, :] = grid.transpose([0, 1, 3, 2])
         return points
 
-    def annotate_intersections(self, points: np.ndarray, index_range: Tuple[int, int]):
-        newshape = list(points.shape)
+    def annotate_intersections(self, intersections: np.ndarray, index_range: Tuple[int, int]):
+        """
+        Returns ndarray of penta-coordinates of all the intersections.
+        This method is optimized for processing the 5D array of pentagrid intersections
+        and doesn't work for arbitrary points.
+        """
+        newshape = list(intersections.shape)
         newshape[-1] = 5
         coordinates = np.zeros(newshape)
         for g in range(self.GROUPS):
             lines = self.get_line_group(g, index_range)
-            coordinates[..., g] = np.sum(np.matmul(points, lines.T) > 0, axis=-1, dtype=int)
-        it = np.ndindex(tuple(newshape[:-1]))
-        for g1, g2, i1, i2 in it:
-            coordinates[g1, g2, i1, i2, g1] = i1
-            coordinates[g1, g2, i1, i2, g2] = i2
+            coordinates[..., g] = np.sum(np.matmul(intersections, lines.T) < 0, axis=-1, dtype=int)
         coordinates += index_range[0]
+        # For all g: Replace the g coordinate for all g-group points
+        mesh = np.asarray(np.meshgrid(np.arange(*index_range), np.arange(*index_range)))
+        for g1, g2 in triangle_iterator(self.GROUPS):
+            coordinates[g1, g2, :, :, (g2, g1)] = mesh
+        for g1, g2 in inverse_triangle_iterator(self.GROUPS):
+            coordinates[g1, g2].fill(np.nan)
         return coordinates
-
-
-def test():
-    grid = Pentagrid()
-    draw = Draw(scale=80)
-    draw.draw_edge(-1, 0, 1, 0)
-    draw.draw_edge(0, -1, 0, 1)
-    plot_grid(grid, draw, -3, 3, -300, 200, 300, -200)
-    plot_intersections(grid, draw, -3, 3)
 
 
 def plot_intersections(grid: Pentagrid,
@@ -121,8 +126,7 @@ def plot_intersections(grid: Pentagrid,
             color = "red"
         for index in np.ndindex(points.shape[2:-1]):
             x, y, z = points[(g1, g2, *index)]
-            draw.draw_point(x, y, color=color)
-    draw.show()
+            draw.point(x, y, color=color)
 
 
 def plot_grid(grid: Pentagrid,
@@ -131,15 +135,32 @@ def plot_grid(grid: Pentagrid,
     for g in range(grid.GROUPS):
         lines = grid.get_line_group(g, (i1, i2))
         for line in lines:
-            draw.draw_norm_line(line)
+            draw.norm_line(line)
+
+
+def test():
+    grid = Pentagrid()
+    draw = Draw(scale=80)
+    draw.edge(-1, 0, 1, 0)
+    draw.edge(0, -1, 0, 1)
+    plot_grid(grid, draw, -3, 3)
+    plot_intersections(grid, draw, -3, 3)
     draw.show()
 
 
 def main():
-    index_range = (-10, 10)
+    index_range = (-4, 4)
     grid = Pentagrid()
-    points = grid.calculate_intersections(index_range)
-    coordinates = grid.annotate_intersections(points, index_range)
+    draw = Draw(scale=80)
+    xy_points = grid.calculate_intersections(index_range)
+    penta_points = grid.annotate_intersections(xy_points, index_range)
+    xy_points = xy_points.reshape([-1, 3])
+    penta_points = penta_points.reshape([-1, 5])
+    plot_grid(grid, draw, -10, 10)
+    indices = np.where(penta_points[:, 1] == 0)
+    strip = np.squeeze(xy_points[indices, :])
+    draw.point_array(strip)
+    draw.show()
 
 
 if __name__ == "__main__":
