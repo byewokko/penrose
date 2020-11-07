@@ -81,21 +81,25 @@ class Pentagrid:
         return points
 
     def annotate_intersections(self, points: np.ndarray, index_range: Tuple[int, int]):
-        # TODO: this next!
-        raise NotImplementedError
         newshape = list(points.shape)
         newshape[-1] = 5
         coordinates = np.zeros(newshape)
         for g in range(self.GROUPS):
             lines = self.get_line_group(g, index_range)
             coordinates[..., g] = np.sum(np.matmul(points, lines.T) > 0, axis=-1, dtype=int)
+        it = np.ndindex(tuple(newshape[:-1]))
+        for g1, g2, i1, i2 in it:
+            coordinates[g1, g2, i1, i2, g1] = i1
+            coordinates[g1, g2, i1, i2, g2] = i2
+        coordinates += index_range[0]
+        return coordinates
 
 
 def test():
     grid = Pentagrid()
     draw = Draw(scale=80)
-    draw.draw_line(-1, 0, 1, 0)
-    draw.draw_line(0, -1, 0, 1)
+    draw.draw_edge(-1, 0, 1, 0)
+    draw.draw_edge(0, -1, 0, 1)
     plot_grid(grid, draw, -3, 3, -300, 200, 300, -200)
     plot_intersections(grid, draw, -3, 3)
 
@@ -135,11 +139,11 @@ def main():
     index_range = (-10, 10)
     grid = Pentagrid()
     points = grid.calculate_intersections(index_range)
-    grid.annotate_intersections(points, index_range)
+    coordinates = grid.annotate_intersections(points, index_range)
 
 
 if __name__ == "__main__":
-    # main()
-    test()
+    main()
+    # test()
     # plot_intersections(Pentagrid(), Draw(scale=30), -100, 100)
     # plot_grid(-20, 20, -300, 200, 300, -200, scale=3)

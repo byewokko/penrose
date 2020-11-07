@@ -54,7 +54,7 @@ class Draw:
         array = np.matmul(array, t.T)
         return array / array[:, [-1]]
 
-    def draw_line(self,
+    def draw_edge(self,
                   *args: Union[float, Tuple[float, float]],
                   normalize: bool = True,
                   color: Optional[str] = None,
@@ -76,28 +76,10 @@ class Draw:
                         width=width or self.line_weight,
                         fill=color or self.line_color)
 
-    def draw_lines(self,
-                   lines: Iterable,
-                   color: Optional[str] = None,
-                   width: Optional[int] = None):
-        for line in lines:
-            self.draw_line(*line, color=color, width=width)
-
-    def draw_edge(self,
-                  v1: tuple, v2: tuple,
-                  color: Optional[str] = None,
-                  width: Optional[int] = None):
-        print("draw_edge is deprecated, use draw_line")
-        x1, y1, x2, y2 = self.normalize(v1[0], v1[1], v2[0], v2[1])
-        self._draw.line([x1, y1, x2, y2],
-                        width=width or self.line_weight,
-                        fill=color or self.line_color)
-
     def draw_edges(self,
                    lines: Iterable,
                    color: Optional[str] = None,
                    width: Optional[int] = None):
-        print("draw_edges is deprecated, use draw_lines")
         for line in lines:
             self.draw_edge(*line, color=color, width=width)
 
@@ -153,13 +135,14 @@ class Draw:
         a /= a[-1]
         b /= b[-1]
         a, b = self.normalize_matrix(np.asarray([a, b]))
-        self.draw_line(a[:2], b[:2], normalize=False, **kwargs)
+        self.draw_edge(a[:2], b[:2], normalize=False, **kwargs)
 
     def draw_norm_lines(self,
                         lines: np.ndarray,
                         *args, **kwargs
                         ):
         assert len(lines[0]) == 3
+        raise NotImplementedError
         a = np.cross(lines, self.box("top"))
         b = np.cross(lines, self.box("bottom"))
         if a[-1] == 0 or b[-1] == 0:
@@ -167,7 +150,7 @@ class Draw:
             b = np.cross(lines, self.box("right"))
         a /= a[-1]
         b /= b[-1]
-        self.draw_line(a[:2], b[:2], normalize=True, **kwargs)
+        self.draw_edge(a[:2], b[:2], normalize=True, **kwargs)
 
     def show(self):
         self._img.show()
@@ -180,7 +163,7 @@ def main():
     d = Draw()
     d.scale = 50
     d.draw_point(0, 0)
-    d.draw_line(-1, 2, 1, -2)
+    d.draw_edge(-1, 2, 1, -2)
     arr = np.asarray(
         [[1, 1, 1],
          [2, 2, 1],
