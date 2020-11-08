@@ -1,5 +1,5 @@
 from p5 import *
-from compose import compose
+from tile import compose
 
 counter = 0
 edge_length = 50

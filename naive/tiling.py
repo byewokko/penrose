@@ -35,18 +35,22 @@ def round_up(val: int, base: int = 2):
 
 
 class Node4D:
-    def __init__(self, params: Optional[Sequence[int]] = None):
-        if not params:
+    def __init__(self, coords: Optional[Sequence[int]] = None):
+        if not coords:
             self._p = (0, 0, 0, 0)
         else:
-            assert len(params) == 4
-            self._p = tuple(params)
+            assert len(coords) == 4
+            self._p = tuple(coords)
 
     def as_tuple(self):
         return tuple(self._p)
 
     def __repr__(self):
         return f"Node4D{str(self._p)}"
+
+    def __iter__(self):
+        for p in self._p:
+            yield p
 
     def __hash__(self):
         return hash(self.as_tuple())
@@ -69,6 +73,18 @@ class Node4D:
     def __eq__(self, other: Node4D):
         return self._p == other._p
 
+    def __gt__(self, other: Node4D):
+        return self._p > other._p
+
+    def __ge__(self, other: Node4D):
+        return self._p >= other._p
+
+    def __lt__(self, other: Node4D):
+        return self._p < other._p
+
+    def __le__(self, other: Node4D):
+        return self._p <= other._p
+
     def __ne__(self, other: Node4D):
         return not (self._p == other._p)
 
@@ -88,9 +104,9 @@ class PenroseNode4D(Node4D):
     ])
     
     def __init__(self,
-                 params: Optional[Sequence[int, int, int, int]] = None,
+                 coords: Optional[Sequence[int, int, int, int]] = None,
                  flag: Union[-1, 0, 1] = 0):
-        super().__init__(params)
+        super().__init__(coords)
         self.flag = flag
         self.free_slots = [True for _ in range(10)]  # slots IN BETWEEN edges
         self.free_slots_saved = self.free_slots.copy()

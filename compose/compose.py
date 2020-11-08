@@ -46,9 +46,9 @@ class RhombNode(tiling.Node4D):
         return cls._step.index(step)
     
     def __init__(self,
-                 params: Optional[Sequence[int, int, int, int]] = None,
+                 coords: Optional[Sequence[int, int, int, int]] = None,
                  flag: Any = None):
-        super().__init__(params)
+        super().__init__(coords)
         self.flag = flag
         self.free_slots = [True for _ in range(10)]  # slots IN BETWEEN edges
 

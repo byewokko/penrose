@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import heapq
-from typing import Union, Tuple, Dict
+from typing import Union, Tuple, Dict, Sequence
 import numpy as np
 
 from utils import transformations as trans
 from drawing.pil_draw_simple import Draw
 
 
-def _set_base_lines():
+def _set_base_lines(offset: Union[np.ndarray, Sequence, None] = None):
     lines = []
     for d in range(5):
         theta = d * 2 * np.pi / 5
         # works, but I'm not sure about the minuses
-        lines.append([-np.cos(theta), -np.sin(theta), np.sqrt(np.random.random() + 1) - 1])
+        lines.append([-np.cos(theta), -np.sin(theta), offset[d]])
     return np.asarray(lines)
 
 
@@ -47,9 +47,12 @@ class Pentagrid:
     """
     GROUPS = 5
 
-    def __init__(self):
-        self._base_lines = _set_base_lines()
-        self._base_offset = self._base_lines[:, -1]
+    def __init__(self, offset: Union[np.ndarray, Sequence, None] = None):
+        if offset:
+            self._base_offset = offset
+        else:
+            self._base_offset = np.asarray([np.sqrt(np.random.random() + 1) - 1 for _ in range(self.GROUPS)])
+        self._base_lines = _set_base_lines(self._base_offset)
 
     def get_line(self, group: int, index: float = 0):
         theta = 2*np.pi/5*group
@@ -57,7 +60,7 @@ class Pentagrid:
         return np.matmul(trans.angular_translate(theta, distance), self._base_lines[group])
 
     def get_line_group(self, group: int, index_range: Tuple[int, int]):
-        a = np.repeat(self.get_line(group)[np.newaxis, :],
+        a = np.repeat(self._base_lines[group][np.newaxis, :],
                       index_range[1] - index_range[0],
                       axis=0)
         a[:, -1] += np.arange(*index_range)
@@ -106,15 +109,15 @@ class Pentagrid:
             coordinates[g1, g2, :, :, (g2, g1)] = mesh
         for g1, g2 in inverse_triangle_iterator(self.GROUPS):
             coordinates[g1, g2].fill(np.nan)
-        indices = np.where(np.any(coordinates[:,:,:,:] >= np.nanmax(coordinates), axis=-1) |
-            np.any(coordinates[:,:,:,:] <= np.nanmin(coordinates), axis=-1))
+        indices = np.where(np.any(coordinates[:, :, :, :] >= np.nanmax(coordinates), axis=-1) |
+            np.any(coordinates[:, :, :, :] <= np.nanmin(coordinates), axis=-1))
         coordinates[indices] = np.nan
         return coordinates
 
 
-def generate_edges(xy_points: np.ndarray):
+def intersections_to_edges(intersections: np.ndarray):
     edges: Dict[tuple, set] = {}
-    shape = xy_points.shape
+    shape = intersections.shape
     for g1 in range(shape[0]):
         for i1 in range(shape[2]):
             h = []
@@ -123,9 +126,9 @@ def generate_edges(xy_points: np.ndarray):
                     continue
                 for i2 in range(shape[3]):
                     if g1 < g2:
-                        heapq.heappush(h, (tuple(xy_points[g1, g2, i1, i2]), (g1, g2, i1, i2)))
+                        heapq.heappush(h, (tuple(intersections[g1, g2, i1, i2]), (g1, g2, i1, i2)))
                     else:
-                        heapq.heappush(h, (tuple(xy_points[g2, g1, i2, i1]), (g2, g1, i2, i1)))
+                        heapq.heappush(h, (tuple(intersections[g2, g1, i2, i1]), (g2, g1, i2, i1)))
             _, n2 = heapq.heappop(h)
             if n2 not in edges.keys():
                 edges[n2] = set()
@@ -168,17 +171,7 @@ def plot_grid(grid: Pentagrid,
             draw.norm_line(line)
 
 
-def test():
-    grid = Pentagrid()
-    draw = Draw(scale=80)
-    draw.edge(-1, 0, 1, 0)
-    draw.edge(0, -1, 0, 1)
-    plot_grid(grid, draw, -3, 3)
-    plot_intersections(grid, draw, -3, 3)
-    draw.show()
-
-
-def find_duplicates(penta_points):
+def _find_duplicates(penta_points):
     first = {}
     second = {}
     third = {}
@@ -204,14 +197,14 @@ def find_duplicates(penta_points):
     return first, second, third, fourth, fifth
 
 
-def show_duplicates():
+def _show_duplicates():
     index_range = (-4, 4)
     grid = Pentagrid()
     draw = Draw(scale=80)
     xy_points = grid.calculate_intersections(index_range)
     penta_points = grid.annotate_intersections(xy_points, index_range)
     plot_grid(grid, draw, -4, 4)
-    first, second, third, fourth, fifth = find_duplicates(penta_points)
+    first, second, third, fourth, fifth = _find_duplicates(penta_points)
     keys = []
     for k in fifth.keys():
         print(k)
@@ -243,7 +236,7 @@ def main():
     grid = Pentagrid()
     draw = Draw(scale=80)
     xy_points = grid.calculate_intersections(index_range)
-    edges = generate_edges(xy_points)
+    edges = intersections_to_edges(xy_points)
     ln = {i: 0 for i in range(12)}
     for e in edges.values():
         ln[len(e)] += 1
@@ -258,6 +251,12 @@ def main():
     # plot_intersections(grid, draw, *index_range)
     draw.show()
     return
+
+
+def generate_edges(index_range: Tuple[int, int], offset: Union[np.ndarray, Sequence, None] = None):
+    grid = Pentagrid(offset)
+    intersections = grid.calculate_intersections(index_range)
+    return intersections_to_edges(intersections)
 
 
 if __name__ == "__main__":

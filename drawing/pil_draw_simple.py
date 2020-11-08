@@ -161,6 +161,14 @@ class Draw:
     def clear(self):
         self._draw.rectangle([0, 0, self.width, self.height], fill="black")
 
+    def polygon(self,
+                vertices: Union[Sequence, np.ndarray],
+                color: Optional[str] = None,
+                width: Optional[int] = None):
+        self._draw.polygon(vertices,
+                           width=width or self.line_weight,
+                           fill=color or self.line_color)
+
 
 def main():
     d = Draw()
