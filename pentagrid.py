@@ -121,12 +121,11 @@ def generate_edges(xy_points: np.ndarray):
             for g2 in range(shape[1]):
                 if g1 == g2:
                     continue
-                if g1 < g2:
-                    a, b = g1, g2
-                else:
-                    a, b = g2, g1
                 for i2 in range(shape[3]):
-                    heapq.heappush(h, (tuple(xy_points[a, b, i1, i2]), (a, b, i1, i2)))
+                    if g1 < g2:
+                        heapq.heappush(h, (tuple(xy_points[g1, g2, i1, i2]), (g1, g2, i1, i2)))
+                    else:
+                        heapq.heappush(h, (tuple(xy_points[g2, g1, i2, i1]), (g2, g1, i2, i1)))
             _, n2 = heapq.heappop(h)
             if n2 not in edges.keys():
                 edges[n2] = set()
@@ -137,7 +136,6 @@ def generate_edges(xy_points: np.ndarray):
                 edges[n1].add(n2)
                 edges[n2].add(n1)
                 n2 = n1
-    # FIXME: doesn't work properly, ignores some edges
     return edges
 
 
@@ -246,16 +244,16 @@ def main():
     draw = Draw(scale=80)
     xy_points = grid.calculate_intersections(index_range)
     edges = generate_edges(xy_points)
-    ln = {i: 0 for i in range(6)}
+    ln = {i: 0 for i in range(12)}
     for e in edges.values():
         ln[len(e)] += 1
     print(ln)
     plot_grid(grid, draw, *index_range)
     for k, v in edges.items():
-        if len(v) == 2:
+        if len(v) == 3:
             draw.norm_point(xy_points[k])
     for k, v in edges.items():
-        if len(v) == 3:
+        if len(v) == 4:
             draw.norm_point(xy_points[k], color="green")
     # plot_intersections(grid, draw, *index_range)
     draw.show()
