@@ -11,7 +11,7 @@ from drawing.pil_draw_simple import Draw
 def _set_base_lines(offset: Union[np.ndarray, Sequence, None] = None):
     lines = []
     for d in range(5):
-        theta = d * 2 * np.pi / 5
+        theta = d * np.pi / 5
         # works, but I'm not sure about the minuses
         lines.append([-np.cos(theta), -np.sin(theta), offset[d]])
     return np.asarray(lines)
@@ -55,7 +55,7 @@ class Pentagrid:
         self._base_lines = _set_base_lines(self._base_offset)
 
     def get_line(self, group: int, index: float = 0):
-        theta = 2*np.pi/5*group
+        theta = np.pi/5*group
         distance = index
         return np.matmul(trans.angular_translate(theta, distance), self._base_lines[group])
 
@@ -80,8 +80,8 @@ class Pentagrid:
         points.fill(np.nan)
         base = np.array(np.meshgrid(np.arange(*index_range), np.arange(*index_range), [1])).T
         for g1, g2 in triangle_iterator(self.GROUPS):
-            iota = 2 * np.pi / 5 * (g2 - g1)
-            theta = 2 * np.pi / 5 * g1
+            iota = np.pi / 5 * (g2 - g1)
+            theta = np.pi / 5 * g1
             trans_matrix = np.matmul(trans.angular_skew_y(iota),
                                      trans.translate(self._base_offset[g1], self._base_offset[g2]))
             trans_matrix = np.matmul(trans.rotate(theta),
