@@ -142,6 +142,62 @@ def intersections_to_edges(intersections: np.ndarray):
     return edges
 
 
+def get_direction(node_from: tuple, node_to: tuple):
+    if node_from[0] == node_to[0]:
+        if node_to[2] - node_from[2] > 0:
+            return node_from[0]
+        else:
+            return (node_from[0] + 5) % 10
+    elif node_from[1] == node_to[1]:
+        if node_to[3] - node_from[3] > 0:
+            return node_from[1]
+        else:
+            return (node_from[1] + 5) % 10
+    elif node_from[0] == node_to[1]:
+        if node_to[3] - node_from[2] > 0:
+            return node_from[0]
+        else:
+            return (node_from[0] + 5) % 10
+    elif node_from[1] == node_to[0]:
+        if node_to[2] - node_from[3] > 0:
+            return node_from[1]
+        else:
+            return (node_from[1] + 5) % 10
+
+
+def intersections_to_edges_dict(intersections: np.ndarray):
+    edges: Dict[tuple, dict] = {}
+    yx_intersections = np.zeros_like(intersections)
+    yx_intersections[:, [0, 1]] = intersections[:, [1, 0]]
+    shape = yx_intersections.shape
+    for g1 in range(shape[0]):
+        if g1 > shape[0] / 2:
+            order = -1
+        else:
+            order = 1
+        for i1 in range(shape[2]):
+            h = []
+            for g2 in range(shape[1]):
+                if g1 == g2:
+                    continue
+                for i2 in range(shape[3]):
+                    if g1 < g2:
+                        heapq.heappush(h, (tuple(order * yx_intersections[g1, g2, i1, i2]), (g1, g2, i1, i2)))
+                    else:
+                        heapq.heappush(h, (tuple(order * yx_intersections[g2, g1, i2, i1]), (g2, g1, i2, i1)))
+            _, n2 = heapq.heappop(h)
+            if n2 not in edges.keys():
+                edges[n2] = {}
+            while h:
+                _, n1 = heapq.heappop(h)
+                if n1 not in edges.keys():
+                    edges[n1] = {}
+                edges[n1][g1] = n2
+                edges[n2][(g1 + 5) % 10] = n1
+                n2 = n1
+    return edges
+
+
 def plot_intersections(grid: Pentagrid,
                        draw: Draw,
                        i1: int, i2: int):
