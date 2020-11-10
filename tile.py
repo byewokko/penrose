@@ -15,34 +15,6 @@ L = logging.getLogger(__name__)
 L.setLevel(logging.DEBUG)
 
 
-def normalize_rhomb_type(rhomb_type):
-    e1 = (rhomb_type[0] * 2) % 5
-    e2 = (rhomb_type[1] * 2) % 5
-    if e1 > e2:
-        e1, e2 = e2, e1
-    return e1, e2
-
-
-def get_ribbon_and_direction(adjacent_node, this_node):
-    if this_node[0] == adjacent_node[0]:
-        ribbon = this_node[0]
-        direction = adjacent_node[2] - this_node[2]
-    elif this_node[0] == adjacent_node[1]:
-        ribbon = this_node[0]
-        direction = adjacent_node[3] - this_node[2]
-    elif this_node[1] == adjacent_node[0]:
-        ribbon = this_node[1]
-        direction = adjacent_node[2] - this_node[3]
-    elif this_node[1] == adjacent_node[1]:
-        ribbon = this_node[1]
-        direction = adjacent_node[3] - this_node[3]
-    else:
-        L.error(f"No matching ribbon for {this_node} and {adjacent_node}")
-        ribbon, direction = None, None
-    assert direction in (-1, 1)
-    return ribbon, direction
-
-
 class Vertex(tiling.Node4D):
     _step = tuple(tiling.Node4D(x) for x in [
         (4, 0, 0, 0),
@@ -108,13 +80,24 @@ class Edge:
 
 
 class Rhomb:
+    """
+    Only holds mapping of directions to edges.
+    """
 
-    # TODO: find good data structure for rhomb
+    def __init__(self, edges: Dict[int, tuple]):
+        self.edges = edges
 
-    def __init__(self, vertices: Sequence[Edge], type: Tuple[int, int]):
-        raise NotImplementedError
-        # self._edges: Dict[Tuple[int, int, int, int], Rhomb] = {}
-        self._edges = {}
+    def type(self):
+        return (max(self.edges.keys()) - min(self.edges.keys())) % 5
+
+    def get_vertices(self):
+        direction = next(iter(self.edges.keys()))
+        a, b = self.edges[direction]
+        c, d = self.edges[(direction + 5) % 10]
+        return a, b, c, d
+
+    def get_edges(self):
+        return self.edges.values()
 
     def xy(self, edge_length: float = 1.):
         raise NotImplementedError
@@ -154,8 +137,7 @@ class TilingBuilder:
     def prepare_grid(self, index_range: Tuple[int, int]):
         L.debug("Calculating pentagrid edges")
         grid_nodes = self._grid.calculate_intersections(index_range)
-        self._grid_edges = pentagrid.intersections_to_edges(grid_nodes)
-        # TODO: remove nodes with 3 or less neighbors
+        self._grid_edges = pentagrid.intersections_to_edges_dict(grid_nodes)
         L.info("Pentagrid edges ready")
 
     def generate_rhombs(self,
@@ -173,44 +155,54 @@ class TilingBuilder:
             if not grid_node:
                 break
             # Add adjacents to frontier and build them
-            for adjacent in self._grid_edges[grid_node]:
+            for direction, adjacent in self._grid_edges[grid_node].items():
                 if adjacent not in self._expanded_nodes:
                     self.frontier_push(adjacent)
-                    self.build_adjacent_rhomb(grid_node, adjacent)
+                    self._rhombs[adjacent] = self.build_adjacent_rhomb(grid_node, direction, adjacent)
                     yield self._rhombs[adjacent]
 
-    def build_adjacent_rhomb(self, this_node, adjacent_node):
-        # find out rhomb types
-        n0_type = this_node[:2]
-        n1_type = adjacent_node[:2]
-        ribbon, direction = get_ribbon_and_direction(adjacent_node, this_node)
+    def build_adjacent_rhomb(self, this_node: tuple, this_direction: int, adjacent_node: tuple):
         this_rhomb = self._rhombs[this_node]
-        shared_edge = this_rhomb.get_edge(ribbon, direction)  # TODO: add rhomb method
-        if ribbon == adjacent_node[0]:
-            cross_ribbon = adjacent_node[1]
+        shared_edge = this_rhomb.edges[this_direction]
+        cd_direction = this_direction
+        ab_direction = (cd_direction + 5) % 10
+        if adjacent_node[0] == ab_direction % 5:
+            cross_direction = adjacent_node[1]
+        elif adjacent_node[1] == ab_direction % 5:
+            cross_direction = adjacent_node[0]
         else:
-            cross_ribbon = adjacent_node[0]
-        if cross_ribbon in ((ribbon + 1) % 5, (ribbon + 2) % 5):
-            cross_direction = direction
+            raise ValueError(f"Direction {ab_direction} not found in {adjacent_node}")
+
+        # The edges in a rhomb must follow in ascending order, with steps no larger than 4
+        if (ab_direction < cross_direction < ab_direction + 5
+                or not (ab_direction - 5 < cross_direction < ab_direction)):
+            bc_direction = cross_direction
+            da_direction = (cross_direction + 5) % 10
         else:
-            cross_direction = -direction
-        a = shared_edge[0]  # TODO: add edge __get__ method
-        b = shared_edge[1]
-        d = a.step(cross_ribbon, cross_direction)  # TODO: update vertex.step() method
-        c = b.step(cross_ribbon, cross_direction)
+            da_direction = cross_direction
+            bc_direction = (cross_direction + 5) % 10
+
+        # invert the edge
+        b, a = shared_edge
+        c = b.step(bc_direction)
+        d = a.step(bc_direction)
         ab = shared_edge
-        bc = Edge.get_edge(b, c)
-        cd = Edge.get_edge(c, d)
-        da = Edge.get_edge(d, a)
+        bc = (b, c)
+        cd = (c, d)
+        da = (d, a)
         rhomb_edges = {
-            (ribbon, -direction): ab,
-            (cross_ribbon, cross_direction): bc,
-            (ribbon, direction): cd,
-            (cross_ribbon, cross_direction): da
+            ab_direction: ab,
+            bc_direction: bc,
+            cd_direction: cd,
+            da_direction: da
         }
-        self.add_rhomb(adjacent_node, Rhomb(rhomb_edges))
+        return Rhomb(rhomb_edges)
 
     def frontier_push(self, grid_node: tuple):
+        # check if the node has enough neighbors
+        if len(self._grid_edges[grid_node]) < 4:
+            L.debug(f"Node {grid_node} has only {len(self._grid_edges[grid_node])} neighbors. Skipping.")
+            return
         item = (self._frontier_counter, grid_node)
         heapq.heappush(self._frontier, item)
         self._frontier_counter += 1
@@ -220,18 +212,34 @@ class TilingBuilder:
         return grid_node
 
     def build_start_rhomb(self,
-                          rhomb_type: Tuple[int, int],
+                          node: tuple,
                           start_vertex: Optional[Vertex] = None):
         if not start_vertex:
             # This is the lower left vertex of the rhomb
             start_vertex = Vertex.get_vertex((0, 0, 0, 0))
-        # TODO: rewrite this like build_adjacent_rhomb
-        e1, e2 = normalize_rhomb_type(rhomb_type)
+
+        ab_direction, cross_direction = node
+        # The edges in a rhomb must follow in ascending order, with steps no larger than 4
+        if (ab_direction < cross_direction < ab_direction + 5
+                or not (ab_direction - 5 < cross_direction < ab_direction)):
+            bc_direction = cross_direction
+        else:
+            bc_direction = (cross_direction + 5) % 10
         a = start_vertex
-        b = a.step(e1)
-        d = a.step(e2)
-        c = b.step(e2)
-        return Rhomb((a, b, c, d), type=(e1, e2))
+        b = a.step(ab_direction)
+        c = b.step(bc_direction)
+        d = a.step(bc_direction)
+        ab = (a, b)
+        bc = (b, c)
+        cd = (c, d)
+        da = (d, a)
+        rhomb_edges = {
+            ab_direction: ab,
+            bc_direction: bc,
+            (ab_direction + 5) % 10: cd,
+            (bc_direction + 5) % 10: da
+        }
+        return Rhomb(rhomb_edges)
 
     def add_rhomb(self, grid_node: tuple, rhomb: Rhomb):
         self._rhombs[grid_node] = rhomb
@@ -239,7 +247,7 @@ class TilingBuilder:
 
 def main():
     draw = Draw(scale=30)
-    index_range = (-4, 4)
+    index_range = (-5, 5)
     grid = pentagrid.Pentagrid()
     tiling_builder = TilingBuilder(grid)
     tiling_builder.prepare_grid(index_range)
