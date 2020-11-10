@@ -33,6 +33,8 @@ class Vertex(tiling.Node4D):
 
     @classmethod
     def get_vertex(cls, coords):
+        if isinstance(coords, Vertex):
+            coords = coords.as_tuple()
         if tuple(coords) in cls._all_vertices:
             return cls._all_vertices[tuple(coords)]
         vertex = cls(coords)
@@ -90,7 +92,7 @@ class Rhomb:
     def type(self):
         return (max(self.edges.keys()) - min(self.edges.keys())) % 5
 
-    def get_vertices(self):
+    def get_vertices(self) -> Tuple[Vertex, Vertex, Vertex, Vertex]:
         direction = next(iter(self.edges.keys()))
         a, b = self.edges[direction]
         c, d = self.edges[(direction + 5) % 10]
@@ -100,7 +102,7 @@ class Rhomb:
         return self.edges.values()
 
     def xy(self, edge_length: float = 1.):
-        raise NotImplementedError
+        return [n.get_xy(edge_length, True) for n in self.get_vertices()]
 
 
 class Tiling:
@@ -137,7 +139,7 @@ class TilingBuilder:
     def prepare_grid(self, index_range: Tuple[int, int]):
         L.debug("Calculating pentagrid edges")
         grid_nodes = self._grid.calculate_intersections(index_range)
-        self._grid_edges = pentagrid.intersections_to_edges_dict(grid_nodes)
+        self._grid_edges = pentagrid.intersections_to_edges_dict(grid_nodes, index_range)
         L.info("Pentagrid edges ready")
 
     def generate_rhombs(self,
@@ -149,7 +151,7 @@ class TilingBuilder:
         yield self._rhombs[start_node]
         while True:
             # Stopping conditions
-            if len(self._rhombs) >= n_rhombs:
+            if n_rhombs and len(self._rhombs) >= n_rhombs:
                 break
             grid_node = self.frontier_pop()
             if not grid_node:
@@ -208,6 +210,8 @@ class TilingBuilder:
         self._frontier_counter += 1
 
     def frontier_pop(self):
+        if not self._frontier:
+            return None
         _, grid_node = heapq.heappop(self._frontier)
         return grid_node
 
@@ -246,13 +250,14 @@ class TilingBuilder:
 
 
 def main():
-    draw = Draw(scale=30)
+    draw = Draw(scale=100)
     index_range = (-5, 5)
     grid = pentagrid.Pentagrid()
     tiling_builder = TilingBuilder(grid)
     tiling_builder.prepare_grid(index_range)
-    for rhomb in tiling_builder.generate_rhombs(n_rhombs=5):
+    for rhomb in tiling_builder.generate_rhombs(n_rhombs=100):
         draw.polygon(rhomb.xy())
+    draw.show()
 
 
 if __name__ == "__main__":

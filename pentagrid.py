@@ -165,7 +165,7 @@ def get_direction(node_from: tuple, node_to: tuple):
             return (node_from[1] + 5) % 10
 
 
-def intersections_to_edges_dict(intersections: np.ndarray):
+def intersections_to_edges_dict(intersections: np.ndarray, index_range: tuple):
     edges: Dict[tuple, dict] = {}
     yx_intersections = np.zeros_like(intersections)
     yx_intersections[:, [0, 1]] = intersections[:, [1, 0]]
@@ -182,9 +182,13 @@ def intersections_to_edges_dict(intersections: np.ndarray):
                     continue
                 for i2 in range(shape[3]):
                     if g1 < g2:
-                        heapq.heappush(h, (tuple(order * yx_intersections[g1, g2, i1, i2]), (g1, g2, i1, i2)))
+                        heapq.heappush(
+                            h, (tuple(order * yx_intersections[g1, g2, i1, i2]),
+                                (g1, g2, i1 + index_range[0], i2 + index_range[0])))
                     else:
-                        heapq.heappush(h, (tuple(order * yx_intersections[g2, g1, i2, i1]), (g2, g1, i2, i1)))
+                        heapq.heappush(
+                            h, (tuple(order * yx_intersections[g2, g1, i2, i1]),
+                                (g2, g1, i2 + index_range[0], i1 + index_range[0])))
             _, n2 = heapq.heappop(h)
             if n2 not in edges.keys():
                 edges[n2] = {}
