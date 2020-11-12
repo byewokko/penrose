@@ -6,43 +6,52 @@ from tile import TilingBuilder
 
 draw_once = True
 generator = None
+scale_ = 20
+
+colors = {
+    0: Color("#fa26a0"),
+    1: Color("#05dfd7"),
+    2: Color("#a3f7bf"),
+    3: Color("#fff591"),
+    4: Color("#3b2e5a")
+}
 
 
 def setup():
     size(1280, 1024)
     stroke_weight(3)
-    # no_stroke()
+    no_stroke()
 
 
 def draw():
-    if frame_count < 100:
+    if frame_count < 20:
         return
 
     global draw_once
     if draw_once:
-        background("#fff591")
+        background(0,0,0,0)
         draw_once = False
 
     push_matrix()
     translate(width / 2, height / 2)
-    scale(40, 40)
-    stroke(Color("#a3f7bf"))
+    scale(scale_, scale_)
 
-    try:
-        c_small = Color("#fa26a0")
-        c_big = Color("#05dfd7")
-        rhomb = next(generator)
-        verts = rhomb.xy()
-        begin_shape()
-        if rhomb.type() in (1, 4):
-            fill(c_small)
-        else:
-            fill(c_big)
-        for x, y, z in verts:
-            vertex(x, y)
-        end_shape(CLOSE)
-    except StopIteration:
-        pass
+
+    rhomb = next(generator)
+    verts = rhomb.xy()
+    begin_shape()
+    # x = rhomb.node[2] % 5
+    # x = int(rhomb.node[2] == rhomb.node[3]) + 2 * int(rhomb.node[2] == -rhomb.node[3])
+    # x = int(2 in rhomb.node[:2])
+    # x = rhomb.type()-1
+    # a = np.asarray([list(v) for v in rhomb.get_vertices()])
+    # x = int(np.sum(np.abs(a.sum(axis=0))) % 5)
+    x = rhomb.type() in (1, 4)
+    fill(colors[x])
+
+    for x, y, z in verts:
+        vertex(x, y)
+    end_shape(CLOSE)
 
     pop_matrix()
 
@@ -52,7 +61,9 @@ if __name__ == "__main__":
     edge_length = 50
     draw_once = True
 
-    grid = Pentagrid([0.27603443, 0.25264065, 0.3475783,  0.21077636, 0.25933642])
+    # grid = Pentagrid([0.27603443, 0.25264065, 0.3475783,  0.21077636, 0.25933642])
+    # grid = Pentagrid([0.33328288, 0.18981448, 0.02987785, 0.27362873, 0.29810506])
+    grid = Pentagrid()
     tiling = TilingBuilder(grid)
     tiling.prepare_grid((-50, 50))
     generator = tiling.generate_rhombs()

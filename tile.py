@@ -87,8 +87,9 @@ class Rhomb:
     Only holds mapping of directions to edges.
     """
 
-    def __init__(self, edges: Dict[int, tuple]):
+    def __init__(self, edges: Dict[int, tuple], grid_node: Optional[tuple] = None):
         self.edges = edges
+        self.node = grid_node
 
     def type(self):
         return (max(self.edges.keys()) - min(self.edges.keys())) % 5
@@ -238,7 +239,7 @@ class TilingBuilder:
         # print("BC", bc_direction, bc)
         # print("CD", cd_direction, cd)
         # print("DA", da_direction, da)
-        return Rhomb(rhomb_edges)
+        return Rhomb(rhomb_edges, adjacent_node)
 
     def frontier_push(self, grid_node: tuple):
         # check if the node has enough neighbors
@@ -283,7 +284,7 @@ class TilingBuilder:
             (ab_direction + 5) % 10: cd,
             (bc_direction + 5) % 10: da
         }
-        return Rhomb(rhomb_edges)
+        return Rhomb(rhomb_edges, node)
 
     def add_rhomb(self, grid_node: tuple, rhomb: Rhomb):
         self._rhombs[grid_node] = rhomb
