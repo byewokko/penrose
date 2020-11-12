@@ -1,23 +1,10 @@
 # penrose
-Penrose tiling generation with processing.py. Experiments and interactive stuff.
+Penrose tiling generation with numpy, visualisation with Pillow and processing.py. Experiments and interactive stuff (hopefully).
 
 ## Notes
 
-- bottom-up approach (composing tiles randomly) needs more work
-  - it needs edge markers instead of node markers
-- let's try the pentagrid approach 
-    - generate random pentagrid
-    - calculate all intersections
-    - find out which strips each of them lies in => 5 coordinates
-    - use this as oracle for the compositional tiling method 
-- pentagrid will probably fail because of floating point math
-    - for tiling composition, use heapq
-    - first resolve nodes with higher confidence (further away from closest neighbors)
-    
-## To watch out:
-
-- no grid line can pass through the origin
-- no more than two lines can intersect at any single point
+- the naive bottom-up approach with only local rules fails quickly (as expected)
+- now focusing on using pentagrid as oracle for placing the tiles
 
 ### RESOURCES
 
