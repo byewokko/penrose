@@ -292,13 +292,16 @@ class TilingBuilder:
 
 def main():
     draw = Draw(scale=60)
+    draw.line_color = None
     index_range = (-30, 30)
     grid = pentagrid.Pentagrid()
     tiling_builder = TilingBuilder(grid)
     tiling_builder.prepare_grid(index_range)
     tiling_builder.generate_rhomb_list(n_rhombs=1000)
+    color = ["#fa26a0", "#05dfd7"]
     for rhomb in tiling_builder._rhombs.values():
-        draw.polygon(rhomb.xy())
+        c = rhomb.type() in (1, 4)
+        draw.polygon(rhomb.xy(), color=color[c], outline="#fff")
     draw.show()
 
 

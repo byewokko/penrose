@@ -11,7 +11,7 @@ import numpy as np
 """
 Benchmarking of different n-dimensional dict implementations.
 
-Guess I'm not using any of them after all.
+Guess I don't need any of them after all.
 """
 
 

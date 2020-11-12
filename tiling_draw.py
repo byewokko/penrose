@@ -6,30 +6,31 @@ from tile import TilingBuilder
 
 draw_once = True
 generator = None
-scale_ = 20
+scale_ = 40
 
-colors = {
-    0: Color("#fa26a0"),
-    1: Color("#05dfd7"),
-    2: Color("#a3f7bf"),
-    3: Color("#fff591"),
-    4: Color("#3b2e5a")
-}
+colors = [
+    Color("#fa26a0"),
+    Color("#05dfd7"),
+    Color("#fff591"),
+    Color("#a3f7bf"),
+    Color("#3b2e5a")
+]
 
 
 def setup():
     size(1280, 1024)
-    stroke_weight(3)
+    stroke_weight(4)
     no_stroke()
 
 
 def draw():
-    if frame_count < 20:
+    if frame_count < 50:
         return
 
     global draw_once
     if draw_once:
-        background(0,0,0,0)
+        stroke(colors[2])
+        background(colors[4])
         draw_once = False
 
     push_matrix()
@@ -47,11 +48,20 @@ def draw():
     # a = np.asarray([list(v) for v in rhomb.get_vertices()])
     # x = int(np.sum(np.abs(a.sum(axis=0))) % 5)
     x = rhomb.type() in (1, 4)
+    # x = rhomb.node[0]
     fill(colors[x])
 
     for x, y, z in verts:
         vertex(x, y)
     end_shape(CLOSE)
+
+    # stroke(colors[rhomb.type() in (1, 4)])
+    # a, b, c, d = verts
+    # n_lines = 4
+    # lines_a = np.linspace(a, b, n_lines)
+    # lines_b = np.linspace(d, c, n_lines)
+    # for a, b in zip(lines_a, lines_b):
+    #     line(*a, *b)
 
     pop_matrix()
 

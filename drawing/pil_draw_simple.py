@@ -164,11 +164,11 @@ class Draw:
     def polygon(self,
                 vertices: Union[Sequence, np.ndarray],
                 color: Optional[str] = None,
-                width: Optional[int] = None):
+                outline: Optional[str] = None):
         vertices = self.normalize_matrix(vertices)[:, :2]
         vertices = tuple(map(tuple, vertices))
         self._draw.polygon(vertices,
-                           outline=self.line_color,
+                           outline=outline or self.line_color,
                            fill=color or self.fill_color)
 
 
