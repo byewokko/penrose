@@ -13,6 +13,7 @@ from drawing.pil_draw_simple import Draw
 
 L = logging.getLogger(__name__)
 L.setLevel(logging.DEBUG)
+L.addHandler(logging.StreamHandler())
 
 
 class Vertex(tiling.Node4D):
@@ -126,6 +127,7 @@ class TilingBuilder:
     """
     Generates Penrose tiling from a given Pentagrid, using rhomb tiles.
     """
+
     def __init__(self, grid: pentagrid.Pentagrid):
         self._grid = grid
         self._grid_edges = None
@@ -146,10 +148,15 @@ class TilingBuilder:
                         start_node: Tuple[int, int, int, int] = (0, 1, 0, 0),
                         n_rhombs: int = None):
         assert self._grid_edges
+        next_alert = 0
         self.frontier_push(start_node)
         self.add_rhomb(start_node, self.build_start_rhomb(start_node[:2]))
         yield self._rhombs[start_node]
         while True:
+            if self._frontier_counter > next_alert:
+                L.debug(f"{len(self._frontier)} nodes in frontier")
+                L.debug(f"{len(self._rhombs)} rhombs built")
+                next_alert += 100
             # Stopping conditions
             if n_rhombs and len(self._rhombs) >= n_rhombs:
                 break
@@ -159,9 +166,37 @@ class TilingBuilder:
             # Add adjacents to frontier and build them
             for direction, adjacent in self._grid_edges[grid_node].items():
                 if adjacent not in self._expanded_nodes:
+                    self._expanded_nodes.add(adjacent)
                     self.frontier_push(adjacent)
                     self._rhombs[adjacent] = self.build_adjacent_rhomb(grid_node, direction, adjacent)
                     yield self._rhombs[adjacent]
+
+    def generate_rhomb_list(self,
+                            start_node: Tuple[int, int, int, int] = (0, 1, 0, 0),
+                            n_rhombs: int = None):
+        assert self._grid_edges
+        next_alert = 0
+        self.frontier_push(start_node)
+        self.add_rhomb(start_node, self.build_start_rhomb(start_node[:2]))
+        # yield self._rhombs[start_node]
+        while True:
+            if self._frontier_counter > next_alert:
+                L.debug(f"{len(self._frontier)} nodes in frontier")
+                L.debug(f"{len(self._rhombs)} rhombs built")
+                next_alert += 100
+            # Stopping conditions
+            if n_rhombs and len(self._rhombs) >= n_rhombs:
+                break
+            grid_node = self.frontier_pop()
+            if not grid_node:
+                break
+            # Add adjacents to frontier and build them
+            for direction, adjacent in self._grid_edges[grid_node].items():
+                if adjacent not in self._expanded_nodes:
+                    self._expanded_nodes.add(adjacent)
+                    self.frontier_push(adjacent)
+                    self._rhombs[adjacent] = self.build_adjacent_rhomb(grid_node, direction, adjacent)
+                    # yield self._rhombs[adjacent]
 
     def build_adjacent_rhomb(self, this_node: tuple, this_direction: int, adjacent_node: tuple):
         this_rhomb = self._rhombs[this_node]
@@ -188,7 +223,7 @@ class TilingBuilder:
         b, a = shared_edge
         c = b.step(bc_direction)
         d = a.step(bc_direction)
-        ab = shared_edge
+        ab = (a, b)
         bc = (b, c)
         cd = (c, d)
         da = (d, a)
@@ -198,6 +233,11 @@ class TilingBuilder:
             cd_direction: cd,
             da_direction: da
         }
+        # print(adjacent_node)
+        # print("AB", ab_direction, ab)
+        # print("BC", bc_direction, bc)
+        # print("CD", cd_direction, cd)
+        # print("DA", da_direction, da)
         return Rhomb(rhomb_edges)
 
     def frontier_push(self, grid_node: tuple):
@@ -250,12 +290,13 @@ class TilingBuilder:
 
 
 def main():
-    draw = Draw(scale=100)
-    index_range = (-5, 5)
+    draw = Draw(scale=60)
+    index_range = (-30, 30)
     grid = pentagrid.Pentagrid()
     tiling_builder = TilingBuilder(grid)
     tiling_builder.prepare_grid(index_range)
-    for rhomb in tiling_builder.generate_rhombs(n_rhombs=100):
+    tiling_builder.generate_rhomb_list(n_rhombs=1000)
+    for rhomb in tiling_builder._rhombs.values():
         draw.polygon(rhomb.xy())
     draw.show()
 

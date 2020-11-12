@@ -7,6 +7,13 @@ import numpy as np
 from utils import transformations as trans
 from drawing.pil_draw_simple import Draw
 
+import logging
+
+
+L = logging.getLogger(__name__)
+L.setLevel(logging.DEBUG)
+L.addHandler(logging.StreamHandler())
+
 
 def _set_base_lines(offset: Union[np.ndarray, Sequence, None] = None):
     lines = []
@@ -52,6 +59,7 @@ class Pentagrid:
             self._base_offset = offset
         else:
             self._base_offset = np.asarray([np.sqrt(np.random.random() + 1) - 1 for _ in range(self.GROUPS)])
+        print(self._base_offset)
         self._base_lines = _set_base_lines(self._base_offset)
 
     def get_line(self, group: int, index: float = 0):
@@ -168,7 +176,7 @@ def get_direction(node_from: tuple, node_to: tuple):
 def intersections_to_edges_dict(intersections: np.ndarray, index_range: tuple):
     edges: Dict[tuple, dict] = {}
     yx_intersections = np.zeros_like(intersections)
-    yx_intersections[:, [0, 1]] = intersections[:, [1, 0]]
+    yx_intersections[..., [0, 1]] = intersections[..., [1, 0]]
     shape = yx_intersections.shape
     for g1 in range(shape[0]):
         if g1 > shape[0] / 2:
