@@ -24,9 +24,8 @@ class Draw:
                  height: int = HEIGHT,
                  scale: int = SCALE,
                  point_size: int = POINT_SIZE,
-                 line_weight: int = LINE_WEIGHT):
-        self._img = Image.new("RGB", (width, height))
-        self._draw = ImageDraw.Draw(self._img)
+                 line_weight: int = LINE_WEIGHT,
+                 bg_color: str = BG_COLOR):
         self.width = width
         self.height = height
         self.scale = scale
@@ -35,7 +34,10 @@ class Draw:
         self.point_color = POINT_COLOR
         self.line_color = LINE_COLOR
         self.fill_color = FILL_COLOR
-        self.bg_color = BG_COLOR
+        self.bg_color = bg_color
+        self._img = Image.new("RGB", (width, height))
+        self._draw = ImageDraw.Draw(self._img)
+        self.clear()
 
     def normalize(self, *args: float):
         assert not len(args) % 2, f"The number of args must be even. Received: {len(args)}"
@@ -159,7 +161,7 @@ class Draw:
         self._img.show()
 
     def clear(self):
-        self._draw.rectangle([0, 0, self.width, self.height], fill="black")
+        self._draw.rectangle([0, 0, self.width, self.height], fill=self.bg_color)
 
     def polygon(self,
                 vertices: Union[Sequence, np.ndarray],

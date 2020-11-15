@@ -1,6 +1,8 @@
 # penrose
 Penrose tiling generation with numpy, visualisation with Pillow and processing.py. Experiments and interactive stuff (hopefully).
 
+![example](images/tmpuxwvpwap.png)
+
 ## Notes
 
 - the naive bottom-up approach with only local rules fails quickly (as expected)

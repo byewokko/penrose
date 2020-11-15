@@ -49,7 +49,7 @@ class Vertex(tiling.Node4D):
         direction = direction % 10
         return self.get_vertex(self + self._step[direction])
 
-    def get_xy(self, edge_length: float, homogenous: bool = True):
+    def get_xy(self, edge_length: float = 1.0, homogenous: bool = True):
         x = edge_length * (self._p[0] + np.sqrt(5) * self._p[1]) / 4
         y = edge_length * (np.sin(np.pi / 5) * self._p[2] + np.sin(np.pi * 2 / 5) * self._p[3])
         if homogenous:
@@ -291,17 +291,32 @@ class TilingBuilder:
 
 
 def main():
-    draw = Draw(scale=60)
+    draw = Draw(scale=100, width=3*1280, height=3*1280, bg_color="#3b2e5a")
     draw.line_color = None
-    index_range = (-30, 30)
+    index_range = (-5, 5)
     grid = pentagrid.Pentagrid()
     tiling_builder = TilingBuilder(grid)
     tiling_builder.prepare_grid(index_range)
-    tiling_builder.generate_rhomb_list(n_rhombs=1000)
-    color = ["#fa26a0", "#05dfd7"]
+    tiling_builder.generate_rhomb_list()
+    color = [
+        "#fa26a0",
+        "#05dfd7",
+        "#fff591",
+        "#a3f7bf",
+        "#3b2e5a"
+    ]
+    # for rhomb in tiling_builder._rhombs.values():
+    #     c = rhomb.type() in (2, 3)
+    #     draw.polygon(rhomb.xy(), color=color[c + 1])
+    #     for a, b in rhomb.get_edges():
+    #         draw.edge(a.get_xy(homogenous=False), b.get_xy(homogenous=False), color="#3b2e5a", width=8)
+
     for rhomb in tiling_builder._rhombs.values():
-        c = rhomb.type() in (1, 4)
-        draw.polygon(rhomb.xy(), color=color[c], outline="#fff")
+        c = rhomb.node[0]
+        draw.polygon(rhomb.xy(), color=color[c])
+        for a, b in rhomb.get_edges():
+            draw.edge(a.get_xy(homogenous=False), b.get_xy(homogenous=False), color="#3b2e5a", width=8)
+
     draw.show()
 
 
