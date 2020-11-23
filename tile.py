@@ -3,6 +3,7 @@ from __future__ import annotations
 import heapq
 import random
 import sys
+import colorsys
 import logging
 from typing import Optional, Union, Tuple, List, Sequence, Any, Literal, Dict
 import numpy as np
@@ -184,7 +185,7 @@ class TilingBuilder:
             if self._frontier_counter > next_alert:
                 L.debug(f"{len(self._frontier)} nodes in frontier")
                 L.debug(f"{len(self._rhombs)} rhombs built")
-                next_alert += 100
+                next_alert += 200
             # Stopping conditions
             if n_rhombs and len(self._rhombs) >= n_rhombs:
                 break
@@ -291,31 +292,26 @@ class TilingBuilder:
 
 
 def main():
-    draw = Draw(scale=100, width=3*1280, height=3*1280, bg_color="#3b2e5a")
-    draw.line_color = None
-    index_range = (-5, 5)
-    grid = pentagrid.Pentagrid()
-    tiling_builder = TilingBuilder(grid)
-    tiling_builder.prepare_grid(index_range)
-    tiling_builder.generate_rhomb_list()
-    color = [
+    palette = [
         "#fa26a0",
         "#05dfd7",
         "#fff591",
         "#a3f7bf",
         "#3b2e5a"
     ]
-    # for rhomb in tiling_builder._rhombs.values():
-    #     c = rhomb.type() in (2, 3)
-    #     draw.polygon(rhomb.xy(), color=color[c + 1])
-    #     for a, b in rhomb.get_edges():
-    #         draw.edge(a.get_xy(homogenous=False), b.get_xy(homogenous=False), color="#3b2e5a", width=8)
+    draw = Draw(scale=130, width=3*1280, height=3*1280, bg_color=palette[-1])
+    draw.line_color = None
+    index_range = (-4, 4)
+    grid = pentagrid.Pentagrid()
+    tiling_builder = TilingBuilder(grid)
+    tiling_builder.prepare_grid(index_range)
+    tiling_builder.generate_rhomb_list()
 
     for rhomb in tiling_builder._rhombs.values():
-        c = rhomb.node[0]
-        draw.polygon(rhomb.xy(), color=color[c])
+        c = rhomb.type() in (2, 3)
+        draw.polygon(rhomb.xy(), color=palette[c + 1])
         for a, b in rhomb.get_edges():
-            draw.edge(a.get_xy(homogenous=False), b.get_xy(homogenous=False), color="#3b2e5a", width=8)
+            draw.edge(a.get_xy(homogenous=False), b.get_xy(homogenous=False), color=palette[-1], width=8)
 
     draw.show()
 

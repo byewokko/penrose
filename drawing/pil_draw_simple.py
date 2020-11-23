@@ -14,9 +14,6 @@ LINE_COLOR = "grey"
 FILL_COLOR = "pink"
 BG_COLOR = "black"
 
-img = Image.new("RGB", (WIDTH, HEIGHT))
-draw = ImageDraw.Draw(img)
-
 
 class Draw:
     def __init__(self,
@@ -25,7 +22,8 @@ class Draw:
                  scale: int = SCALE,
                  point_size: int = POINT_SIZE,
                  line_weight: int = LINE_WEIGHT,
-                 bg_color: str = BG_COLOR):
+                 bg_color: Optional[str] = BG_COLOR,
+                 color_mode: str = "RGB"):
         self.width = width
         self.height = height
         self.scale = scale
@@ -34,10 +32,12 @@ class Draw:
         self.point_color = POINT_COLOR
         self.line_color = LINE_COLOR
         self.fill_color = FILL_COLOR
-        self.bg_color = bg_color
-        self._img = Image.new("RGB", (width, height))
+        if not bg_color:
+            self.bg_color = "#00000000"
+        else:
+            self.bg_color = bg_color
+        self._img = Image.new(color_mode, (width, height), self.bg_color)
         self._draw = ImageDraw.Draw(self._img)
-        self.clear()
 
     def normalize(self, *args: float):
         assert not len(args) % 2, f"The number of args must be even. Received: {len(args)}"
@@ -172,24 +172,3 @@ class Draw:
         self._draw.polygon(vertices,
                            outline=outline or self.line_color,
                            fill=color or self.fill_color)
-
-
-def main():
-    d = Draw()
-    d.scale = 50
-    d.point(0, 0)
-    d.edge(-1, 2, 1, -2)
-    arr = np.asarray(
-        [[1, 1, 1],
-         [2, 2, 1],
-         [1, 1, -1],
-         [1, -1, -1],
-         [1, -1, 1]]
-    )
-    d.point_array(arr, color="blue")
-    d.norm_line(np.asarray([1, 1, 0]))
-    d.show()
-
-
-if __name__ == "__main__":
-    main()
