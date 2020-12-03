@@ -1,6 +1,6 @@
 from p5 import *
 
-from pentagrid import Pentagrid
+from multigrid import Pentagrid
 from tile import TilingBuilder
 
 

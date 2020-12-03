@@ -1,11 +1,11 @@
-import pentagrid
+import multigrid
 import tile
 from drawing.pil_draw_simple import Draw
 
 draw = Draw(scale=140, width=3*1280, height=3*1280, bg_color="#fff591")
 draw.line_color = None
 index_range = (-7, 7)
-grid = pentagrid.Pentagrid()
+grid = multigrid.Pentagrid()
 tiling_builder = tile.TilingBuilder(grid)
 tiling_builder.prepare_grid(index_range)
 tiling_builder.generate_rhomb_list()

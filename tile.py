@@ -9,7 +9,7 @@ from typing import Optional, Union, Tuple, List, Sequence, Any, Literal, Dict
 import numpy as np
 
 from naive import tiling
-import pentagrid
+import multigrid
 from drawing.pil_draw_simple import Draw
 
 L = logging.getLogger(__name__)
@@ -130,7 +130,7 @@ class TilingBuilder:
     Generates Penrose tiling from a given Pentagrid, using rhomb tiles.
     """
 
-    def __init__(self, grid: pentagrid.Pentagrid):
+    def __init__(self, grid: multigrid.Pentagrid):
         self._grid = grid
         self._grid_edges = None
         self._vertices: Dict[Tuple[int, int, int, int], Vertex] = {}
@@ -143,7 +143,7 @@ class TilingBuilder:
     def prepare_grid(self, index_range: Tuple[int, int]):
         L.debug("Calculating pentagrid edges")
         grid_nodes = self._grid.calculate_intersections(index_range)
-        self._grid_edges = pentagrid.intersections_to_edges_dict(grid_nodes, index_range)
+        self._grid_edges = multigrid.intersections_to_edges_dict(grid_nodes, index_range)
         L.info("Pentagrid edges ready")
 
     def generate_rhombs(self,
@@ -302,7 +302,7 @@ def main():
     draw = Draw(scale=130, width=3*1280, height=3*1280, bg_color=palette[-1])
     draw.line_color = None
     index_range = (-4, 4)
-    grid = pentagrid.Pentagrid()
+    grid = multigrid.Pentagrid()
     tiling_builder = TilingBuilder(grid)
     tiling_builder.prepare_grid(index_range)
     tiling_builder.generate_rhomb_list()

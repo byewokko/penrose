@@ -1,14 +1,14 @@
 import colorsys
 import numpy as np
 
-import pentagrid
+import multigrid
 import tile
 from drawing.pil_draw_simple import Draw
 
 draw = Draw(scale=30, width=3*1280, height=3*1280, bg_color="#ffffff", color_mode="RGB")
 draw.line_color = None
 index_range = (-18, 18)
-grid = pentagrid.Pentagrid()
+grid = multigrid.Pentagrid()
 tiling_builder = tile.TilingBuilder(grid)
 tiling_builder.prepare_grid(index_range)
 tiling_builder.generate_rhomb_list()
@@ -18,7 +18,7 @@ base_colors = [colorsys.hsv_to_rgb(1/12*i, 1, 1) for i in range(8, 13)]
 
 # compute colors for each ribbon intersection type
 palette = {}
-for i, j in pentagrid.triangle_iterator(5):
+for i, j in multigrid.triangle_iterator(5):
     c = [
         ("0" + hex(int(a))[2:])[-2:]
         for a
