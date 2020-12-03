@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Union, Tuple, List, Sequence, Deque
+from typing import Optional, Union, Tuple, List, Sequence, Deque, Literal
 
 import numpy as np
 
@@ -106,11 +106,17 @@ class VertexBag:
     def as_nparray(self):
         return np.stack(self.keys())
 
-    def get_xy(self, edge_length):
+    def get_xy(self, edge_length, form: Union[Literal["xy"], Literal["xy1"]] = "xy"):
         transmat = np.asarray(
             [(np.cos(np.pi / self.n_dims * i), np.sin(np.pi / self.n_dims * i)) for i in range(self.n_dims)]
         ) * edge_length
-        return np.matmul(self.as_nparray(), transmat)
+        xy = np.matmul(self.as_nparray(), transmat)
+        if form == "xy":
+            return xy
+        elif form == "xy1":
+            np.vstack([xy, np.ones([xy.shape[0], 1])])
+        else:
+            raise ValueError(f"Unknown form: '{form}'")
 
 
 class EdgeBag:
