@@ -177,8 +177,9 @@ def plot_grid(grid: Multigrid,
 
 def example():
     draw = Draw(scale=80)
-    grid = Multigrid(7)
-    index_range = (-2, 2)
+    offsets = list(map(float, "0.04885131 0.38705046 0.15540683 0.37524718 0.09360688 0.04554864 0.0424169".split(" ")))
+    grid = Multigrid(7, offsets)
+    index_range = (-4, 4)
     plot_grid(grid, draw, *index_range)
     plot_intersections(grid, draw, *index_range)
     draw.show()

@@ -77,10 +77,10 @@ class Vertex(Point):
             coords[direction] += 1
         return self._bag[coords]
 
-    def get_xy(self, edge_length: float = 1.0, homogenous: bool = True):
+    def get_xy(self, edge_length: float = 1.0, form: Union[Literal["xy"], Literal["xy1"]] = "xy"):
         x = edge_length * sum([p * np.cos(np.pi / self.length * i) for i, p in enumerate(self._p)])
         y = edge_length * sum([p * np.sin(np.pi / self.length * i) for i, p in enumerate(self._p)])
-        if homogenous:
+        if form == "xy1":
             return np.asarray([x, y, 1])
         return np.asarray([x, y])
 

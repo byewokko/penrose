@@ -69,16 +69,31 @@ class Draw:
                            outline=None)
 
     def circle(self,
-              x: float, y: float, radius: float,
-              normalize: bool = True,
-              color: Optional[str] = None,
-              outline: Optional[str] = None):
+               x: float, y: float, radius: float,
+               normalize: bool = True,
+               color: Optional[str] = None,
+               outline: Optional[str] = None):
         coords = x - radius, y + radius, x + radius, y - radius
         if normalize:
             coords = list(self.normalize(*coords))
         self._draw.ellipse(coords,
                            fill=color or self.point_color,
-                           outline=None)
+                           outline=outline)
+
+    def ellipse(self,
+                coords: Sequence[float],
+                normalize: bool = True,
+                color: Optional[str] = None,
+                outline: Optional[str] = None):
+        new_coords = (min(coords[0], coords[2]),
+                      max(coords[1], coords[3]),
+                      max(coords[0], coords[2]),
+                      min(coords[1], coords[3]),)
+        if normalize:
+            coords = list(self.normalize(*new_coords))
+        self._draw.ellipse(coords,
+                           fill=color or self.point_color,
+                           outline=outline)
 
     def points(self, points: Iterable, color: str = "red"):
         for point in points:

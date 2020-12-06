@@ -32,8 +32,13 @@ class Rhomb:
     def get_edges(self):
         return self.edges.values()
 
-    def xy(self, edge_length: float = 1.):
-        return [n.get_xy(edge_length, True) for n in self.get_vertices()]
+    def xy(self, edge_length: float = 1., form: Union[Literal["xy"], Literal["xy1"]] = "xy"):
+        return [n.get_xy(edge_length, form=form) for n in self.get_vertices()]
+
+    def center(self, edge_length: float = 1., form: Union[Literal["xy"], Literal["xy1"]] = "xy"):
+        a, b, c, d = self.xy(edge_length=edge_length, form=form)
+        return (a + c) / 2
+
 
 
 class TilingBuilder:
@@ -202,17 +207,17 @@ def main():
         "#00818a",
         "#f7be16",
     ]
-    draw = Draw(scale=120, width=3*1280, height=3*1280, bg_color=palette[-2])
+    draw = Draw(scale=70, width=4*1280, height=4*1280, bg_color=palette[-2])
     draw.line_color = None
-    index_range = (-5, 5)
-    grid = multigrid.Multigrid(4)
+    index_range = (-2, 2)
+    grid = multigrid.Multigrid(25)
     tiling_builder = TilingBuilder(grid)
     tiling_builder.prepare_grid(index_range)
     tiling_builder.generate_rhomb_list()
 
     for rhomb in tiling_builder._rhombs.values():
         for a, b in rhomb.get_edges():
-            draw.edge(a.get_xy(homogenous=False), b.get_xy(homogenous=False), color=palette[-1], width=4)
+            draw.edge(a.get_xy(homogenous=False), b.get_xy(homogenous=False), color=palette[-1], width=3)
 
     draw.show()
 

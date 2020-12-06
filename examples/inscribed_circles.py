@@ -20,7 +20,7 @@ tiling_builder = tile.TilingBuilder(grid)
 tiling_builder.prepare_grid(index_range)
 tiling_builder.generate_rhomb_list()
 
-radius = (1 * np.sin(np.pi/5) / 2.1, 1 * np.sin(np.pi/5 * 2) / 2.1)
+radius = (1 * np.sin(np.pi/5) / 2.3, 1 * np.sin(np.pi/5 * 2) / 2.3)
 
 for rhomb in tiling_builder._rhombs.values():
     c = rhomb.type() in (2, 3)
