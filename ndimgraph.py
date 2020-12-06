@@ -95,7 +95,7 @@ class VertexBag:
         if isinstance(item, Vertex):
             item = item.as_tuple()
         if tuple(item) in self.keys():
-            return self[tuple(item)]
+            return self._dict[tuple(item)]
         vertex = Vertex(self, item)
         self._dict[tuple(item)] = vertex
         return vertex
