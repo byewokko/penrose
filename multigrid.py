@@ -53,7 +53,10 @@ class Multigrid:
         if offset:
             self._base_offset = offset
         else:
-            self._base_offset = np.asarray([np.sqrt(np.random.random() + 1) - 1 for _ in range(self.N)])
+            self._base_offset = np.asarray(
+                [(np.sqrt(np.random.random() + 1) - 1) * np.random.choice([-1, 1], 1)
+                 for _ in range(self.N)]
+            )
         print(self._base_offset)
         self._base_lines = _set_base_lines(self.N, self._base_offset)
 
