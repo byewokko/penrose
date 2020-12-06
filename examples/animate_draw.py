@@ -1,7 +1,7 @@
 from p5 import *
 
 from multigrid import Pentagrid
-from tile import TilingBuilder
+from ntiling import TilingBuilder
 
 
 draw_once = True
