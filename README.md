@@ -3,7 +3,7 @@
 Penrose (and Penrose-like) tiling generation with numpy, using de Bruijn's multigrid method. 
 Visualisation with Pillow. Experiments and interactive stuff (hopefully).
 
-![example](images/tmp361bfs4_smol.png)
+![examples](images/readme-examples-1.png)
 
 ## Usage
 
@@ -16,7 +16,8 @@ python3 examples/original-tiling.py
 There are more examples to get inspired by in the `examples` folder.
 
 
-![another-example](images/tmpymhb48jh_smol.png)
+![examples](images/readme-examples-2.png)
+![examples](images/readme-examples-3.png)
 
 
 ### RESOURCES
