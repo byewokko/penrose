@@ -10,7 +10,7 @@ import multigrid
 from drawing.pil_draw_simple import Draw
 
 L = logging.getLogger(__name__)
-L.setLevel(logging.DEBUG)
+L.setLevel(logging.INFO)
 L.addHandler(logging.StreamHandler())
 
 
@@ -40,7 +40,6 @@ class Rhomb:
         return (a + c) / 2
 
 
-
 class TilingBuilder:
     def __init__(self, grid: multigrid.Multigrid):
         self._grid = grid
@@ -58,7 +57,7 @@ class TilingBuilder:
         L.debug("Calculating pentagrid edges")
         grid_nodes = self._grid.calculate_intersections(index_range)
         self._grid_edges = multigrid.intersections_to_edges_dict(grid_nodes, index_range)
-        L.info("Pentagrid edges ready")
+        L.debug("Pentagrid edges ready")
 
     def generate_rhombs(self,
                         start_node: Tuple[int, int, int, int] = (0, 1, 0, 0),
@@ -202,22 +201,30 @@ class TilingBuilder:
 
 def main():
     palette = [
-        "#293462",
-        "#216583",
-        "#00818a",
-        "#f7be16",
+        "#fa26a0",
+        "#fff591",
+        "#3b2e5a"
     ]
-    draw = Draw(scale=70, width=4*1280, height=4*1280, bg_color=palette[-2])
+
+    draw = Draw(
+        scale=160,
+        width=3 * 1280,
+        height=3 * 1280,
+        bg_color=palette[-1]
+    )
     draw.line_color = None
-    index_range = (-2, 2)
-    grid = multigrid.Multigrid(25)
+    index_range = (-8, 8)
+    grid = multigrid.Pentagrid()
+    L.info("Grid base: {}".format(list(grid.base_offset.flatten())))
     tiling_builder = TilingBuilder(grid)
     tiling_builder.prepare_grid(index_range)
     tiling_builder.generate_rhomb_list()
 
     for rhomb in tiling_builder._rhombs.values():
+        c = int(rhomb.type() in (2, 3))
+        draw.polygon(rhomb.xy(form="xy1"), color=palette[c])
         for a, b in rhomb.get_edges():
-            draw.edge(a.get_xy(homogenous=False), b.get_xy(homogenous=False), color=palette[-1], width=3)
+            draw.edge(a.get_xy(), b.get_xy(), color=palette[-1], width=8)
 
     draw.show()
 

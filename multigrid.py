@@ -51,14 +51,13 @@ class Multigrid:
     def __init__(self, n: int, offset: Union[np.ndarray, Sequence, None] = None):
         self.N = n
         if offset:
-            self._base_offset = offset
+            self.base_offset = offset
         else:
-            self._base_offset = np.asarray(
+            self.base_offset = np.asarray(
                 [(np.sqrt(np.random.random() + 1) - 1) * np.random.choice([-1, 1], 1)
                  for _ in range(self.N)]
             )
-        print(self._base_offset)
-        self._base_lines = _set_base_lines(self.N, self._base_offset)
+        self._base_lines = _set_base_lines(self.N, self.base_offset)
 
     def get_line(self, group: int, index: float = 0):
         theta = np.pi / self.N * group
@@ -89,7 +88,7 @@ class Multigrid:
             iota = np.pi / self.N * (g2 - g1)
             theta = np.pi / self.N * g1
             trans_matrix = np.matmul(trans.angular_skew_y(iota),
-                                     trans.translate(self._base_offset[g1], self._base_offset[g2]))
+                                     trans.translate(self.base_offset[g1], self.base_offset[g2]))
             trans_matrix = np.matmul(trans.rotate(theta),
                                      trans_matrix)
             grid = np.matmul(trans_matrix,
