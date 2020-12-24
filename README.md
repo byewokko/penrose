@@ -1,13 +1,23 @@
-# penrose
-Penrose tiling generation with numpy, visualisation with Pillow and processing.py. Experiments and interactive stuff (hopefully).
+# Penrose
+
+Penrose (and Penrose-like) tiling generation with numpy, using de Bruijn's multigrid method. 
+Visualisation with Pillow. Experiments and interactive stuff (hopefully).
 
 ![example](images/tmp361bfs4_smol.png)
+
+## Usage
+
+To generate the original Penrose two-rhomb tiling, simply run
+
+```
+python3 examples/original-tiling.py
+```
+
+There are more examples to get inspired by in the `examples` folder.
+
+
 ![another-example](images/tmpymhb48jh_smol.png)
 
-## Notes
-
-- the naive bottom-up approach with only local rules fails quickly (as expected)
-- now focusing on using pentagrid as oracle for placing the tiles
 
 ### RESOURCES
 
