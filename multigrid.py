@@ -58,6 +58,7 @@ class Multigrid:
                  for _ in range(self.N)]
             )
         self._base_lines = _set_base_lines(self.N, self.base_offset)
+        L.info("Multigrid offset vector: [{}]".format(", ".join([str(x) for x in self.base_offset.flatten()])))
 
     def get_line(self, group: int, index: float = 0):
         theta = np.pi / self.N * group

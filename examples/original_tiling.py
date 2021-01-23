@@ -4,11 +4,10 @@ from drawing.pil_draw_simple import Draw
 
 draw = Draw(scale=140, width=3*1280, height=3*1280, bg_color="#fff591")
 draw.line_color = None
-index_range = (-7, 7)
+index_range = (-9, 9)
 grid = multigrid.Pentagrid()
 tiling_builder = ntiling.TilingBuilder(grid)
-tiling_builder.prepare_grid(index_range)
-tiling_builder.generate_rhomb_list()
+rhombs = tiling_builder.generate_rhomb_list(index_range=index_range)
 
 palette = [
     "#fa26a0",
@@ -16,7 +15,7 @@ palette = [
     "#3b2e5a"
 ]
 
-for rhomb in tiling_builder._rhombs.values():
+for rhomb in rhombs:
     c = rhomb.type() in (2, 3)
     draw.polygon(rhomb.xy(form="xy1"), color=palette[c])
     for a, b in rhomb.get_edges():

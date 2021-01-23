@@ -5,8 +5,8 @@ from PIL import Image, ImageDraw
 
 from utils import transformations as trans
 
-WIDTH, HEIGHT = 1280, 1024
-SCALE = 20
+WIDTH, HEIGHT = 2*1024, 2*1024
+SCALE = 80
 POINT_SIZE = 3
 LINE_WEIGHT = 1
 POINT_COLOR = "red"
